@@ -4,7 +4,6 @@ import { TVShowCarousel } from "@/components/tv-show-carousel"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { FirstVisitRedirect } from "@/components/first-visit-redirect"
-import { DebugFirstVisit } from "@/components/debug-first-visit"
 import { getMoviesServer, getTVShowsServer } from "@/lib/database"
 
 export default async function HomePage() {
@@ -28,7 +27,6 @@ export default async function HomePage() {
   return (
     <FirstVisitRedirect>
       <div className="min-h-screen bg-background">
-        <DebugFirstVisit />
         <Navigation />
 
         {heroMovie && <HeroSection movie={heroMovie} />}

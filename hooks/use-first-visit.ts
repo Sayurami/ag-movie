@@ -12,13 +12,9 @@ export function useFirstVisit() {
     // Check if this is the first visit
     const hasVisited = localStorage.getItem('ag-movies-visited')
     
-    console.log('First visit check:', { hasVisited, willBeFirstVisit: !hasVisited })
-    
     if (!hasVisited) {
-      console.log('Setting isFirstVisit to true')
       setIsFirstVisit(true)
     } else {
-      console.log('Setting isFirstVisit to false')
       setIsFirstVisit(false)
     }
   }, [])
