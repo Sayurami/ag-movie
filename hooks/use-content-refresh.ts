@@ -1,54 +1,44 @@
 "use client"
 
 import { useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { useRouter, usePathname } from "next/navigation"
+import { toast } from "@/hooks/use-toast"
 
 export function useContentRefresh() {
-  useEffect(() => {
-    const supabase = createClient()
-    const now = new Date().toISOString()
+  const router = useRouter()
+  const pathname = usePathname()
 
-    // Check for content that should be released every 30 seconds
+  useEffect(() => {
+    // Only run on non-admin pages
+    if (pathname.startsWith("/admin")) {
+      return
+    }
+
     const interval = setInterval(async () => {
       try {
-        // Check for movies that should be released
-        const { data: moviesToRelease, error: movieError } = await supabase
-          .from("movies")
-          .update({ status: "active" })
-          .eq("status", "coming_soon")
-          .lte("scheduled_release", now)
-          .select("id, title")
+        const response = await fetch("/api/admin/auto-release", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ trigger: "manual" }), // Trigger a check without cron secret
+        })
 
-        if (movieError) {
-          console.error("Movie auto-release error:", movieError)
-          return
-        }
-
-        // Check for TV shows that should be released
-        const { data: tvShowsToRelease, error: tvError } = await supabase
-          .from("tv_shows")
-          .update({ status: "active" })
-          .eq("status", "coming_soon")
-          .lte("scheduled_release", now)
-          .select("id, name")
-
-        if (tvError) {
-          console.error("TV show auto-release error:", tvError)
-          return
-        }
-
-        // If any content was released, refresh the page
-        if ((moviesToRelease?.length || 0) + (tvShowsToRelease?.length || 0) > 0) {
-          // Only refresh if we're not on the admin page (to avoid interrupting admin work)
-          if (!window.location.pathname.includes('/admin')) {
-            window.location.reload()
+        if (response.ok) {
+          const data = await response.json()
+          if (data.released.movies.length > 0 || data.released.tvShows.length > 0) {
+            toast({
+              title: "New Content Available!",
+              description: "Some coming soon items have been released. Refreshing page...",
+            })
+            router.refresh() // Refresh the current page
           }
         }
       } catch (error) {
-        console.error("Content refresh check failed:", error)
+        console.error("Failed to check for new content:", error)
       }
-    }, 30000) // Check every 30 seconds
+    }, 60000) // Check every 1 minute
 
     return () => clearInterval(interval)
-  }, [])
+  }, [router, pathname])
 }

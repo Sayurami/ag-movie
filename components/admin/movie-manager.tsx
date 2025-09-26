@@ -21,8 +21,12 @@ export function MovieManager() {
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null)
   const [embedUrl, setEmbedUrl] = useState("")
   const [trailerUrl, setTrailerUrl] = useState("")
+  const [downloadUrl, setDownloadUrl] = useState("")
   const [isScheduled, setIsScheduled] = useState(false)
   const [scheduledDate, setScheduledDate] = useState("")
+  const [isMultiPart, setIsMultiPart] = useState(false)
+  const [partNumber, setPartNumber] = useState(1)
+  const [parentMovieId, setParentMovieId] = useState("")
   const [loading, setLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
   
@@ -31,6 +35,7 @@ export function MovieManager() {
   const [editingMovie, setEditingMovie] = useState<Movie | null>(null)
   const [editEmbedUrl, setEditEmbedUrl] = useState("")
   const [editTrailerUrl, setEditTrailerUrl] = useState("")
+  const [editDownloadUrl, setEditDownloadUrl] = useState("")
   const [editIsScheduled, setEditIsScheduled] = useState(false)
   const [editScheduledDate, setEditScheduledDate] = useState("")
 
@@ -84,6 +89,7 @@ export function MovieManager() {
     setEditingMovie(movie)
     setEditEmbedUrl(movie.embed_url)
     setEditTrailerUrl(movie.trailer_url || "")
+    setEditDownloadUrl(movie.download_url || "")
     setEditIsScheduled(movie.status === "coming_soon")
     setEditScheduledDate(movie.scheduled_release ? new Date(movie.scheduled_release).toISOString().slice(0, 16) : "")
   }
@@ -99,6 +105,7 @@ export function MovieManager() {
         .update({
           embed_url: editEmbedUrl,
           trailer_url: editTrailerUrl || null,
+          download_url: editDownloadUrl || null,
           status: editIsScheduled ? "coming_soon" : "active",
           scheduled_release: editIsScheduled && editScheduledDate ? new Date(editScheduledDate).toISOString() : null,
           updated_at: new Date().toISOString(),
@@ -174,13 +181,22 @@ export function MovieManager() {
       return
     }
 
+    if (isMultiPart && !parentMovieId.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide a parent movie ID for multi-part movies",
+        variant: "destructive",
+      })
+      return
+    }
+
     setLoading(true)
     const supabase = createClient()
 
     try {
       const movieData = {
         tmdb_id: selectedMovie.id,
-        title: selectedMovie.title,
+        title: isMultiPart ? `${selectedMovie.title} - Part ${partNumber}` : selectedMovie.title,
         overview: selectedMovie.overview,
         poster_path: selectedMovie.poster_path,
         backdrop_path: selectedMovie.backdrop_path,
@@ -190,7 +206,10 @@ export function MovieManager() {
         vote_count: selectedMovie.vote_count,
         genres: selectedMovie.genres,
         trailer_url: trailerUrl || null,
+        download_url: downloadUrl || null,
         embed_url: embedUrl,
+        part_number: isMultiPart ? partNumber : 1,
+        parent_movie_id: isMultiPart && parentMovieId ? parentMovieId : null,
         status: isScheduled ? "coming_soon" : "active",
         scheduled_release: isScheduled && scheduledDate ? new Date(scheduledDate).toISOString() : null,
       }
@@ -210,13 +229,17 @@ export function MovieManager() {
       } else {
         toast({
           title: "Success",
-          description: `Movie "${selectedMovie.title}" added successfully`,
+          description: `Movie "${movieData.title}" added successfully`,
         })
         setSelectedMovie(null)
         setEmbedUrl("")
         setTrailerUrl("")
+        setDownloadUrl("")
         setIsScheduled(false)
         setScheduledDate("")
+        setIsMultiPart(false)
+        setPartNumber(1)
+        setParentMovieId("")
         loadExistingMovies()
       }
     } catch (error) {
@@ -349,6 +372,53 @@ export function MovieManager() {
                       onChange={(e) => setTrailerUrl(e.target.value)}
                     />
                   </div>
+
+                  <div>
+                    <Label htmlFor="download-url">Download URL (Optional)</Label>
+                    <Input
+                      id="download-url"
+                      placeholder="https://example.com/download/..."
+                      value={downloadUrl}
+                      onChange={(e) => setDownloadUrl(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Direct download link for offline viewing</p>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="multi-part"
+                      checked={isMultiPart}
+                      onChange={(e) => setIsMultiPart(e.target.checked)}
+                      className="rounded"
+                    />
+                    <Label htmlFor="multi-part">This is a multi-part movie</Label>
+                  </div>
+
+                  {isMultiPart && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="part-number">Part Number</Label>
+                        <Input
+                          id="part-number"
+                          type="number"
+                          min="1"
+                          value={partNumber}
+                          onChange={(e) => setPartNumber(parseInt(e.target.value) || 1)}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="parent-movie-id">Parent Movie ID (Optional)</Label>
+                        <Input
+                          id="parent-movie-id"
+                          placeholder="UUID of the main movie"
+                          value={parentMovieId}
+                          onChange={(e) => setParentMovieId(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Leave empty for the first part</p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center space-x-2">
                     <input
@@ -484,6 +554,17 @@ export function MovieManager() {
                       value={editTrailerUrl}
                       onChange={(e) => setEditTrailerUrl(e.target.value)}
                     />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-download-url">Download URL (Optional)</Label>
+                    <Input
+                      id="edit-download-url"
+                      placeholder="https://example.com/download/..."
+                      value={editDownloadUrl}
+                      onChange={(e) => setEditDownloadUrl(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Direct download link for offline viewing</p>
                   </div>
 
                   <div className="flex items-center space-x-2">

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { Movie } from "@/lib/types"
-import { Play, X, Volume2, VolumeX, Maximize, Minimize } from "lucide-react"
+import { Play, X, Volume2, VolumeX, Maximize, Minimize, Download, ExternalLink } from "lucide-react"
 
 interface MoviePlayerProps {
   movie: Movie
@@ -59,10 +59,30 @@ export function MoviePlayer({ movie }: MoviePlayerProps) {
                 </Badge>
               )}
             </div>
-            <Button size="lg" onClick={handlePlay} className="text-xl px-12 py-6">
-              <Play className="h-6 w-6 mr-3" />
-              Play Movie
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+              <Button size="lg" onClick={handlePlay} className="text-xl px-12 py-6">
+                <Play className="h-6 w-6 mr-3" />
+                Play Movie
+              </Button>
+              
+              {movie.download_url && (
+                <Button size="lg" variant="outline" asChild className="text-xl px-12 py-6">
+                  <a href={movie.download_url} target="_blank" rel="noopener noreferrer">
+                    <Download className="h-6 w-6 mr-3" />
+                    Download
+                  </a>
+                </Button>
+              )}
+              
+              {movie.trailer_url && (
+                <Button size="lg" variant="outline" asChild className="text-xl px-12 py-6">
+                  <a href={movie.trailer_url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-6 w-6 mr-3" />
+                    Watch Trailer
+                  </a>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       ) : (

@@ -12,6 +12,9 @@ export interface Movie {
   genres: Genre[]
   trailer_url?: string
   embed_url: string
+  download_url?: string
+  part_number?: number
+  parent_movie_id?: string
   status: "active" | "inactive" | "coming_soon"
   scheduled_release?: string
   created_at: string
@@ -33,6 +36,7 @@ export interface TVShow {
   vote_count?: number
   genres: Genre[]
   trailer_url?: string
+  download_url?: string
   status: "active" | "inactive" | "coming_soon"
   scheduled_release?: string
   created_at: string
@@ -67,6 +71,7 @@ export interface Episode {
   vote_average?: number
   vote_count?: number
   embed_url: string
+  download_url?: string
   created_at: string
 }
 

@@ -19,6 +19,7 @@ export function TVShowManager() {
   const [searchResults, setSearchResults] = useState<TMDBTVShow[]>([])
   const [selectedShow, setSelectedShow] = useState<TMDBTVShow | null>(null)
   const [trailerUrl, setTrailerUrl] = useState("")
+  const [downloadUrl, setDownloadUrl] = useState("")
   const [isScheduled, setIsScheduled] = useState(false)
   const [scheduledDate, setScheduledDate] = useState("")
   const [loading, setLoading] = useState(false)
@@ -28,8 +29,24 @@ export function TVShowManager() {
   const [existingShows, setExistingShows] = useState<TVShow[]>([])
   const [editingShow, setEditingShow] = useState<TVShow | null>(null)
   const [editTrailerUrl, setEditTrailerUrl] = useState("")
+  const [editDownloadUrl, setEditDownloadUrl] = useState("")
   const [editIsScheduled, setEditIsScheduled] = useState(false)
   const [editScheduledDate, setEditScheduledDate] = useState("")
+
+  // Episode management
+  const [selectedShowForEpisodes, setSelectedShowForEpisodes] = useState<TVShow | null>(null)
+  const [episodes, setEpisodes] = useState<any[]>([])
+  const [newEpisode, setNewEpisode] = useState({
+    season_number: 1,
+    episode_number: 1,
+    name: "",
+    overview: "",
+    embed_url: "",
+    download_url: "",
+    air_date: "",
+    runtime: 0
+  })
+  const [editingEpisode, setEditingEpisode] = useState<any>(null)
 
   // Load existing TV shows
   const loadExistingShows = async () => {
@@ -80,6 +97,7 @@ export function TVShowManager() {
   const handleEditShow = (show: TVShow) => {
     setEditingShow(show)
     setEditTrailerUrl(show.trailer_url || "")
+    setEditDownloadUrl(show.download_url || "")
     setEditIsScheduled(show.status === "coming_soon")
     setEditScheduledDate(show.scheduled_release ? new Date(show.scheduled_release).toISOString().slice(0, 16) : "")
   }
@@ -94,6 +112,7 @@ export function TVShowManager() {
         .from("tv_shows")
         .update({
           trailer_url: editTrailerUrl || null,
+          download_url: editDownloadUrl || null,
           status: editIsScheduled ? "coming_soon" : "active",
           scheduled_release: editIsScheduled && editScheduledDate ? new Date(editScheduledDate).toISOString() : null,
           updated_at: new Date().toISOString(),
@@ -112,6 +131,158 @@ export function TVShowManager() {
       toast({
         title: "Error",
         description: "Failed to update TV show",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Load episodes for selected show
+  const loadEpisodes = async (showId: string) => {
+    const supabase = createClient()
+    try {
+      const { data, error } = await supabase
+        .from("episodes")
+        .select("*")
+        .eq("tv_show_id", showId)
+        .order("season_number", { ascending: true })
+        .order("episode_number", { ascending: true })
+      
+      if (error) throw error
+      setEpisodes(data || [])
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load episodes",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Add new episode
+  const handleAddEpisode = async () => {
+    if (!selectedShowForEpisodes || !newEpisode.name.trim() || !newEpisode.embed_url.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in episode name and embed URL",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const supabase = createClient()
+    try {
+      const episodeData = {
+        tv_show_id: selectedShowForEpisodes.id,
+        season_id: null, // We'll handle this later if needed
+        tmdb_id: 0, // Placeholder
+        season_number: newEpisode.season_number,
+        episode_number: newEpisode.episode_number,
+        name: newEpisode.name,
+        overview: newEpisode.overview || null,
+        embed_url: newEpisode.embed_url,
+        download_url: newEpisode.download_url || null,
+        air_date: newEpisode.air_date || null,
+        runtime: newEpisode.runtime || null,
+      }
+
+      const { error } = await supabase.from("episodes").insert([episodeData])
+
+      if (error) throw error
+
+      toast({
+        title: "Success",
+        description: `Episode "${newEpisode.name}" added successfully`,
+      })
+      
+      // Reset form
+      setNewEpisode({
+        season_number: 1,
+        episode_number: 1,
+        name: "",
+        overview: "",
+        embed_url: "",
+        download_url: "",
+        air_date: "",
+        runtime: 0
+      })
+      
+      loadEpisodes(selectedShowForEpisodes.id)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add episode",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Delete episode
+  const handleDeleteEpisode = async (episodeId: string) => {
+    const supabase = createClient()
+    try {
+      const { error } = await supabase
+        .from("episodes")
+        .delete()
+        .eq("id", episodeId)
+      
+      if (error) throw error
+      
+      toast({
+        title: "Success",
+        description: "Episode deleted successfully",
+      })
+      
+      if (selectedShowForEpisodes) {
+        loadEpisodes(selectedShowForEpisodes.id)
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete episode",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Edit episode
+  const handleEditEpisode = (episode: any) => {
+    setEditingEpisode(episode)
+  }
+
+  // Update episode
+  const handleUpdateEpisode = async () => {
+    if (!editingEpisode) return
+
+    const supabase = createClient()
+    try {
+      const { error } = await supabase
+        .from("episodes")
+        .update({
+          name: editingEpisode.name,
+          overview: editingEpisode.overview || null,
+          embed_url: editingEpisode.embed_url,
+          download_url: editingEpisode.download_url || null,
+          air_date: editingEpisode.air_date || null,
+          runtime: editingEpisode.runtime || null,
+        })
+        .eq("id", editingEpisode.id)
+      
+      if (error) throw error
+      
+      toast({
+        title: "Success",
+        description: "Episode updated successfully",
+      })
+      
+      setEditingEpisode(null)
+      
+      if (selectedShowForEpisodes) {
+        loadEpisodes(selectedShowForEpisodes.id)
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update episode",
         variant: "destructive",
       })
     }
@@ -186,6 +357,7 @@ export function TVShowManager() {
         vote_count: selectedShow.vote_count,
         genres: selectedShow.genres,
         trailer_url: trailerUrl || null,
+        download_url: downloadUrl || null,
         status: isScheduled ? "coming_soon" : "active",
         scheduled_release: isScheduled && scheduledDate ? new Date(scheduledDate).toISOString() : null,
       }
@@ -335,6 +507,17 @@ export function TVShowManager() {
                     />
                   </div>
 
+                  <div>
+                    <Label htmlFor="download-url">Download URL (Optional)</Label>
+                    <Input
+                      id="download-url"
+                      placeholder="https://example.com/download/..."
+                      value={downloadUrl}
+                      onChange={(e) => setDownloadUrl(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Direct download link for offline viewing</p>
+                  </div>
+
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -461,6 +644,17 @@ export function TVShowManager() {
                     />
                   </div>
 
+                  <div>
+                    <Label htmlFor="edit-download-url">Download URL (Optional)</Label>
+                    <Input
+                      id="edit-download-url"
+                      placeholder="https://example.com/download/..."
+                      value={editDownloadUrl}
+                      onChange={(e) => setEditDownloadUrl(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Direct download link for offline viewing</p>
+                  </div>
+
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -498,22 +692,297 @@ export function TVShowManager() {
           )}
         </TabsContent>
 
-        <TabsContent value="manage-episodes">
+        <TabsContent value="manage-episodes" className="space-y-6">
+          {/* Select TV Show */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Tv className="h-5 w-5" />
-                Episode Management
+                Select TV Show
               </CardTitle>
-              <CardDescription>Add episodes to existing TV shows</CardDescription>
+              <CardDescription>Choose a TV show to manage its episodes</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                Episode management functionality will be available after adding TV shows. You'll be able to add embed
-                URLs for individual episodes here.
-              </p>
+              {existingShows.length === 0 ? (
+                <p className="text-muted-foreground">No TV shows available. Add some TV shows first.</p>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {existingShows.map((show) => (
+                    <Card 
+                      key={show.id} 
+                      className={`cursor-pointer hover:bg-accent ${selectedShowForEpisodes?.id === show.id ? 'ring-2 ring-primary' : ''}`}
+                      onClick={() => {
+                        setSelectedShowForEpisodes(show)
+                        loadEpisodes(show.id)
+                      }}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex gap-3">
+                          <img
+                            src={getTMDBImageUrl(show.poster_path, "w92") || "/placeholder.svg"}
+                            alt={show.name}
+                            className="w-16 h-24 object-cover rounded"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm truncate">{show.name}</h3>
+                            <p className="text-xs text-muted-foreground">{show.first_air_date}</p>
+                            <Badge variant="secondary" className="text-xs mt-1">
+                              {show.number_of_seasons} seasons
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          {/* Episode Management */}
+          {selectedShowForEpisodes && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Episodes for {selectedShowForEpisodes.name}</CardTitle>
+                  <CardDescription>Add and manage episodes for this TV show</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="episode-season">Season Number</Label>
+                      <Input
+                        id="episode-season"
+                        type="number"
+                        min="1"
+                        value={newEpisode.season_number}
+                        onChange={(e) => setNewEpisode({...newEpisode, season_number: parseInt(e.target.value) || 1})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="episode-number">Episode Number</Label>
+                      <Input
+                        id="episode-number"
+                        type="number"
+                        min="1"
+                        value={newEpisode.episode_number}
+                        onChange={(e) => setNewEpisode({...newEpisode, episode_number: parseInt(e.target.value) || 1})}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="episode-name">Episode Name</Label>
+                    <Input
+                      id="episode-name"
+                      placeholder="Episode title"
+                      value={newEpisode.name}
+                      onChange={(e) => setNewEpisode({...newEpisode, name: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="episode-overview">Episode Overview</Label>
+                    <Input
+                      id="episode-overview"
+                      placeholder="Episode description"
+                      value={newEpisode.overview}
+                      onChange={(e) => setNewEpisode({...newEpisode, overview: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="episode-embed-url">Embed URL (Required)</Label>
+                    <Input
+                      id="episode-embed-url"
+                      placeholder="https://hglink.to/e/..."
+                      value={newEpisode.embed_url}
+                      onChange={(e) => setNewEpisode({...newEpisode, embed_url: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="episode-download-url">Download URL (Optional)</Label>
+                    <Input
+                      id="episode-download-url"
+                      placeholder="https://example.com/download/..."
+                      value={newEpisode.download_url}
+                      onChange={(e) => setNewEpisode({...newEpisode, download_url: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="episode-air-date">Air Date</Label>
+                      <Input
+                        id="episode-air-date"
+                        type="date"
+                        value={newEpisode.air_date}
+                        onChange={(e) => setNewEpisode({...newEpisode, air_date: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="episode-runtime">Runtime (minutes)</Label>
+                      <Input
+                        id="episode-runtime"
+                        type="number"
+                        min="0"
+                        value={newEpisode.runtime}
+                        onChange={(e) => setNewEpisode({...newEpisode, runtime: parseInt(e.target.value) || 0})}
+                      />
+                    </div>
+                  </div>
+
+                  <Button onClick={handleAddEpisode} className="w-full">
+                    Add Episode
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Existing Episodes */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Existing Episodes ({episodes.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {episodes.length === 0 ? (
+                    <p className="text-muted-foreground">No episodes added yet.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {episodes.map((episode) => (
+                        <div key={episode.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex-1">
+                            <h4 className="font-semibold">
+                              S{episode.season_number.toString().padStart(2, '0')}E{episode.episode_number.toString().padStart(2, '0')} - {episode.name}
+                            </h4>
+                            {episode.overview && (
+                              <p className="text-sm text-muted-foreground mt-1">{episode.overview}</p>
+                            )}
+                            <div className="flex gap-4 text-xs text-muted-foreground mt-2">
+                              {episode.air_date && <span>Air Date: {episode.air_date}</span>}
+                              {episode.runtime && <span>Runtime: {episode.runtime}min</span>}
+                              {episode.download_url && <span className="text-green-600">Download Available</span>}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditEpisode(episode)}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2">
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Episode</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete "{episode.name}"? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteEpisode(episode.id)}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Edit Episode Dialog */}
+              {editingEpisode && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Edit className="h-5 w-5" />
+                      Edit Episode: {editingEpisode.name}
+                    </CardTitle>
+                    <CardDescription>Update the episode details</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="edit-episode-name">Episode Name</Label>
+                      <Input
+                        id="edit-episode-name"
+                        value={editingEpisode.name}
+                        onChange={(e) => setEditingEpisode({...editingEpisode, name: e.target.value})}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-episode-overview">Episode Overview</Label>
+                      <Input
+                        id="edit-episode-overview"
+                        value={editingEpisode.overview || ""}
+                        onChange={(e) => setEditingEpisode({...editingEpisode, overview: e.target.value})}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-episode-embed-url">Embed URL</Label>
+                      <Input
+                        id="edit-episode-embed-url"
+                        value={editingEpisode.embed_url}
+                        onChange={(e) => setEditingEpisode({...editingEpisode, embed_url: e.target.value})}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-episode-download-url">Download URL</Label>
+                      <Input
+                        id="edit-episode-download-url"
+                        value={editingEpisode.download_url || ""}
+                        onChange={(e) => setEditingEpisode({...editingEpisode, download_url: e.target.value})}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="edit-episode-air-date">Air Date</Label>
+                        <Input
+                          id="edit-episode-air-date"
+                          type="date"
+                          value={editingEpisode.air_date || ""}
+                          onChange={(e) => setEditingEpisode({...editingEpisode, air_date: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-episode-runtime">Runtime (minutes)</Label>
+                        <Input
+                          id="edit-episode-runtime"
+                          type="number"
+                          min="0"
+                          value={editingEpisode.runtime || ""}
+                          onChange={(e) => setEditingEpisode({...editingEpisode, runtime: parseInt(e.target.value) || 0})}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button onClick={handleUpdateEpisode} className="flex-1">
+                        Update Episode
+                      </Button>
+                      <Button onClick={() => setEditingEpisode(null)} variant="outline">
+                        Cancel
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
