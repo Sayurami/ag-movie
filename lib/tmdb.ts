@@ -1,13 +1,19 @@
-const TMDB_API_KEY = process.env.TMDB_API_KEY
+const TMDB_TOKEN = process.env.NEXT_PUBLIC_TMDB_TOKEN
 const TMDB_BASE_URL = "https://api.themoviedb.org/3"
 
 export async function searchTMDBMovie(query: string) {
-  if (!TMDB_API_KEY) {
-    throw new Error("TMDB API key not configured")
+  if (!TMDB_TOKEN) {
+    throw new Error("TMDB token not configured")
   }
 
   const response = await fetch(
-    `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`,
+    `${TMDB_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`,
+    {
+      headers: {
+        'Authorization': TMDB_TOKEN,
+        'Content-Type': 'application/json',
+      },
+    }
   )
 
   if (!response.ok) {
@@ -18,11 +24,16 @@ export async function searchTMDBMovie(query: string) {
 }
 
 export async function getTMDBMovie(id: number) {
-  if (!TMDB_API_KEY) {
-    throw new Error("TMDB API key not configured")
+  if (!TMDB_TOKEN) {
+    throw new Error("TMDB token not configured")
   }
 
-  const response = await fetch(`${TMDB_BASE_URL}/movie/${id}?api_key=${TMDB_API_KEY}`)
+  const response = await fetch(`${TMDB_BASE_URL}/movie/${id}`, {
+    headers: {
+      'Authorization': TMDB_TOKEN,
+      'Content-Type': 'application/json',
+    },
+  })
 
   if (!response.ok) {
     throw new Error("Failed to fetch movie from TMDB")
@@ -32,11 +43,16 @@ export async function getTMDBMovie(id: number) {
 }
 
 export async function searchTMDBTVShow(query: string) {
-  if (!TMDB_API_KEY) {
-    throw new Error("TMDB API key not configured")
+  if (!TMDB_TOKEN) {
+    throw new Error("TMDB token not configured")
   }
 
-  const response = await fetch(`${TMDB_BASE_URL}/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`)
+  const response = await fetch(`${TMDB_BASE_URL}/search/tv?query=${encodeURIComponent(query)}`, {
+    headers: {
+      'Authorization': TMDB_TOKEN,
+      'Content-Type': 'application/json',
+    },
+  })
 
   if (!response.ok) {
     throw new Error("Failed to search TMDB")
@@ -46,11 +62,16 @@ export async function searchTMDBTVShow(query: string) {
 }
 
 export async function getTMDBTVShow(id: number) {
-  if (!TMDB_API_KEY) {
-    throw new Error("TMDB API key not configured")
+  if (!TMDB_TOKEN) {
+    throw new Error("TMDB token not configured")
   }
 
-  const response = await fetch(`${TMDB_BASE_URL}/tv/${id}?api_key=${TMDB_API_KEY}`)
+  const response = await fetch(`${TMDB_BASE_URL}/tv/${id}`, {
+    headers: {
+      'Authorization': TMDB_TOKEN,
+      'Content-Type': 'application/json',
+    },
+  })
 
   if (!response.ok) {
     throw new Error("Failed to fetch TV show from TMDB")
@@ -60,11 +81,16 @@ export async function getTMDBTVShow(id: number) {
 }
 
 export async function getTMDBTVSeasons(id: number) {
-  if (!TMDB_API_KEY) {
-    throw new Error("TMDB API key not configured")
+  if (!TMDB_TOKEN) {
+    throw new Error("TMDB token not configured")
   }
 
-  const response = await fetch(`${TMDB_BASE_URL}/tv/${id}?api_key=${TMDB_API_KEY}`)
+  const response = await fetch(`${TMDB_BASE_URL}/tv/${id}`, {
+    headers: {
+      'Authorization': TMDB_TOKEN,
+      'Content-Type': 'application/json',
+    },
+  })
 
   if (!response.ok) {
     throw new Error("Failed to fetch TV show seasons from TMDB")
@@ -75,11 +101,16 @@ export async function getTMDBTVSeasons(id: number) {
 }
 
 export async function getTMDBSeason(tvId: number, seasonNumber: number) {
-  if (!TMDB_API_KEY) {
-    throw new Error("TMDB API key not configured")
+  if (!TMDB_TOKEN) {
+    throw new Error("TMDB token not configured")
   }
 
-  const response = await fetch(`${TMDB_BASE_URL}/tv/${tvId}/season/${seasonNumber}?api_key=${TMDB_API_KEY}`)
+  const response = await fetch(`${TMDB_BASE_URL}/tv/${tvId}/season/${seasonNumber}`, {
+    headers: {
+      'Authorization': TMDB_TOKEN,
+      'Content-Type': 'application/json',
+    },
+  })
 
   if (!response.ok) {
     throw new Error("Failed to fetch season from TMDB")
