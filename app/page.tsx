@@ -3,6 +3,8 @@ import { MovieCarousel } from "@/components/movie-carousel"
 import { TVShowCarousel } from "@/components/tv-show-carousel"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
+import { FirstVisitRedirect } from "@/components/first-visit-redirect"
+import { DebugFirstVisit } from "@/components/debug-first-visit"
 import { getMoviesServer, getTVShowsServer } from "@/lib/database"
 
 export default async function HomePage() {
@@ -24,22 +26,25 @@ export default async function HomePage() {
   const heroMovie = featuredMovies.find((movie) => movie.backdrop_path) || featuredMovies[0]
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
+    <FirstVisitRedirect>
+      <div className="min-h-screen bg-background">
+        <DebugFirstVisit />
+        <Navigation />
 
-      {heroMovie && <HeroSection movie={heroMovie} />}
+        {heroMovie && <HeroSection movie={heroMovie} />}
 
-      <main className="relative z-10 -mt-32 space-y-12 pb-20">
-        {trendingMovies.length > 0 && <MovieCarousel title="Trending Movies" movies={trendingMovies} />}
+        <main className="relative z-10 -mt-32 space-y-12 pb-20">
+          {trendingMovies.length > 0 && <MovieCarousel title="Trending Movies" movies={trendingMovies} />}
 
-        {topRatedMovies.length > 0 && <MovieCarousel title="Top Rated Movies" movies={topRatedMovies} />}
+          {topRatedMovies.length > 0 && <MovieCarousel title="Top Rated Movies" movies={topRatedMovies} />}
 
-        {trendingTVShows.length > 0 && <TVShowCarousel title="Popular TV Shows" tvShows={trendingTVShows} />}
+          {trendingTVShows.length > 0 && <TVShowCarousel title="Popular TV Shows" tvShows={trendingTVShows} />}
 
-        {featuredTVShows.length > 0 && <TVShowCarousel title="Top Rated TV Shows" tvShows={featuredTVShows} />}
-      </main>
+          {featuredTVShows.length > 0 && <TVShowCarousel title="Top Rated TV Shows" tvShows={featuredTVShows} />}
+        </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </FirstVisitRedirect>
   )
 }

@@ -152,3 +152,92 @@
 .hero-gradient-bottom {
   background: linear-gradient(to top, oklch(0.08 0 0) 0%, oklch(0.08 0 0 / 0.8) 30%, oklch(0.08 0 0 / 0) 100%);
 }
+
+/* Welcome page carousel animations */
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scroll-right {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes scroll-left-slow {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scroll-right-slow {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes scroll-left-fast {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scroll-right-fast {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-scroll-left {
+  animation: scroll-left 60s linear infinite;
+}
+
+.animate-scroll-right {
+  animation: scroll-right 60s linear infinite;
+}
+
+.animate-scroll-left-slow {
+  animation: scroll-left-slow 90s linear infinite;
+}
+
+.animate-scroll-right-slow {
+  animation: scroll-right-slow 90s linear infinite;
+}
+
+.animate-scroll-left-fast {
+  animation: scroll-left-fast 40s linear infinite;
+}
+
+.animate-scroll-right-fast {
+  animation: scroll-right-fast 40s linear infinite;
+}
+
+/* Pause animation on hover */
+.animate-scroll-left:hover,
+.animate-scroll-right:hover,
+.animate-scroll-left-slow:hover,
+.animate-scroll-right-slow:hover,
+.animate-scroll-left-fast:hover,
+.animate-scroll-right-fast:hover {
+  animation-play-state: paused;
+}

@@ -5,9 +5,11 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { WatchlistButton } from "@/components/watchlist-button"
 import { getTMDBImageUrl } from "@/lib/tmdb"
-import type { TVShow } from "@/lib/types"
-import { Share, Heart, Calendar, Tv, Star, ExternalLink } from "lucide-react"
-import { useState } from "react"
+import type { TVShow, Episode } from "@/lib/types"
+import { Share, Heart, Calendar, Tv, Star, ExternalLink, Download, Play } from "lucide-react"
+import { useState, useEffect } from "react"
+import { createClient } from "@/lib/supabase/client"
+import Link from "next/link"
 
 interface TVShowDetailsProps {
   tvShow: TVShow
@@ -15,10 +17,40 @@ interface TVShowDetailsProps {
 
 export function TVShowDetails({ tvShow }: TVShowDetailsProps) {
   const [isLiked, setIsLiked] = useState(false)
+  const [episodes, setEpisodes] = useState<Episode[]>([])
+  const [selectedSeason, setSelectedSeason] = useState<number>(1)
 
   const firstAirYear = tvShow.first_air_date ? new Date(tvShow.first_air_date).getFullYear() : ""
   const firstAirDate = tvShow.first_air_date ? new Date(tvShow.first_air_date).toLocaleDateString() : ""
   const lastAirDate = tvShow.last_air_date ? new Date(tvShow.last_air_date).toLocaleDateString() : ""
+
+  // Load episodes for the TV show
+  useEffect(() => {
+    const loadEpisodes = async () => {
+      const supabase = createClient()
+      try {
+        const { data, error } = await supabase
+          .from("episodes")
+          .select("*")
+          .eq("tv_show_id", tvShow.id)
+          .order("season_number", { ascending: true })
+          .order("episode_number", { ascending: true })
+        
+        if (error) throw error
+        setEpisodes(data || [])
+      } catch (error) {
+        console.error("Failed to load episodes:", error)
+      }
+    }
+
+    loadEpisodes()
+  }, [tvShow.id])
+
+  // Get unique seasons
+  const seasons = Array.from(new Set(episodes.map(ep => ep.season_number))).sort((a, b) => a - b)
+  
+  // Get episodes for selected season
+  const seasonEpisodes = episodes.filter(ep => ep.season_number === selectedSeason)
 
   const handleLikeToggle = () => {
     setIsLiked(!isLiked)
@@ -126,6 +158,15 @@ export function TVShowDetails({ tvShow }: TVShowDetailsProps) {
                     Watch Trailer
                   </Button>
                 )}
+
+                {tvShow.download_url && (
+                  <Button asChild variant="outline">
+                    <a href={tvShow.download_url} target="_blank" rel="noopener noreferrer">
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </a>
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -138,6 +179,82 @@ export function TVShowDetails({ tvShow }: TVShowDetailsProps) {
           <div className="lg:col-span-2">
             <h2 className="text-xl font-semibold text-foreground mb-3">Overview</h2>
             <p className="text-muted-foreground leading-relaxed mb-6">{tvShow.overview}</p>
+
+            {/* Episodes Section */}
+            {episodes.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-xl font-semibold text-foreground mb-4">Episodes</h3>
+                
+                {/* Season Selector */}
+                {seasons.length > 1 && (
+                  <div className="flex gap-2 mb-6">
+                    {seasons.map((season) => (
+                      <Button
+                        key={season}
+                        variant={selectedSeason === season ? "default" : "outline"}
+                        onClick={() => setSelectedSeason(season)}
+                        size="sm"
+                      >
+                        Season {season}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Episodes List */}
+                <div className="space-y-3">
+                  {seasonEpisodes.map((episode) => (
+                    <Card key={episode.id} className="hover:bg-accent transition-colors">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <Badge variant="outline" className="text-xs">
+                                S{episode.season_number.toString().padStart(2, '0')}E{episode.episode_number.toString().padStart(2, '0')}
+                              </Badge>
+                              <h4 className="font-semibold">{episode.name}</h4>
+                              {episode.runtime && (
+                                <span className="text-sm text-muted-foreground">{episode.runtime}min</span>
+                              )}
+                            </div>
+                            {episode.overview && (
+                              <p className="text-sm text-muted-foreground mb-2">{episode.overview}</p>
+                            )}
+                            {episode.air_date && (
+                              <p className="text-xs text-muted-foreground">
+                                Air Date: {new Date(episode.air_date).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-2 ml-4">
+                            <Button asChild size="sm" variant="outline">
+                              <Link href={`/tv/${tvShow.id}/episode/${episode.id}`}>
+                                <Play className="h-3 w-3 mr-1" />
+                                Watch
+                              </Link>
+                            </Button>
+                            {episode.download_url && (
+                              <Button asChild size="sm" variant="outline">
+                                <a href={episode.download_url} target="_blank" rel="noopener noreferrer">
+                                  <Download className="h-3 w-3 mr-1" />
+                                  Download
+                                </a>
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {seasonEpisodes.length === 0 && (
+                  <p className="text-muted-foreground text-center py-8">
+                    No episodes available for Season {selectedSeason}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div>

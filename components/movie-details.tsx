@@ -6,8 +6,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { WatchlistButton } from "@/components/watchlist-button"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { Movie } from "@/lib/types"
-import { Share, Heart, Calendar, Clock, Star, ExternalLink } from "lucide-react"
-import { useState } from "react"
+import { Share, Heart, Calendar, Clock, Star, ExternalLink, Download, Play } from "lucide-react"
+import { useState, useEffect } from "react"
+import { createClient } from "@/lib/supabase/client"
+import Link from "next/link"
 
 interface MovieDetailsProps {
   movie: Movie
@@ -15,9 +17,44 @@ interface MovieDetailsProps {
 
 export function MovieDetails({ movie }: MovieDetailsProps) {
   const [isLiked, setIsLiked] = useState(false)
+  const [movieParts, setMovieParts] = useState<Movie[]>([])
 
   const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : ""
   const releaseDate = movie.release_date ? new Date(movie.release_date).toLocaleDateString() : ""
+
+  // Load movie parts if this is a multi-part movie
+  useEffect(() => {
+    const loadMovieParts = async () => {
+      const supabase = createClient()
+      try {
+        // Check if this movie has parts
+        const { data: parts, error } = await supabase
+          .from("movies")
+          .select("*")
+          .or(`parent_movie_id.eq.${movie.id},id.eq.${movie.parent_movie_id}`)
+          .order("part_number", { ascending: true })
+        
+        if (error) throw error
+        setMovieParts(parts || [])
+      } catch (error) {
+        console.error("Failed to load movie parts:", error)
+      }
+    }
+
+    if (movie.parent_movie_id || movie.part_number) {
+      loadMovieParts()
+    }
+  }, [movie.id, movie.parent_movie_id, movie.part_number])
+
+  // Debug logging
+  console.log("Movie Details Debug:", {
+    title: movie.title,
+    download_url: movie.download_url,
+    hasDownloadUrl: !!movie.download_url,
+    part_number: movie.part_number,
+    parent_movie_id: movie.parent_movie_id,
+    movieParts: movieParts.length
+  })
 
   const handleLikeToggle = () => {
     setIsLiked(!isLiked)
@@ -127,7 +164,63 @@ export function MovieDetails({ movie }: MovieDetailsProps) {
                 Watch Trailer
               </Button>
             )}
+
+            {movie.download_url && (
+              <Button asChild variant="outline">
+                <a href={movie.download_url} target="_blank" rel="noopener noreferrer">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </a>
+              </Button>
+            )}
           </div>
+
+          {/* Movie Parts */}
+          {movieParts.length > 1 && (
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4">Movie Parts</h3>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {movieParts.map((part) => (
+                    <div
+                      key={part.id}
+                      className={`p-4 border rounded-lg hover:bg-accent transition-colors ${
+                        part.id === movie.id ? 'ring-2 ring-primary bg-accent' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={getTMDBImageUrl(part.poster_path, "w92") || "/placeholder.svg"}
+                          alt={part.title}
+                          className="w-16 h-24 object-cover rounded"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm truncate">{part.title}</h4>
+                          <p className="text-xs text-muted-foreground">Part {part.part_number}</p>
+                          <div className="flex gap-2 mt-2">
+                            <Button asChild size="sm" variant="outline">
+                              <Link href={`/movie/${part.id}`}>
+                                <Play className="h-3 w-3 mr-1" />
+                                Watch
+                              </Link>
+                            </Button>
+                            {part.download_url && (
+                              <Button asChild size="sm" variant="outline">
+                                <a href={part.download_url} target="_blank" rel="noopener noreferrer">
+                                  <Download className="h-3 w-3 mr-1" />
+                                  Download
+                                </a>
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Additional Details */}
           <Card>
@@ -152,6 +245,12 @@ export function MovieDetails({ movie }: MovieDetailsProps) {
                   <span className="text-muted-foreground">TMDB ID:</span>
                   <span className="ml-2 text-foreground">{movie.tmdb_id}</span>
                 </div>
+                {movie.part_number && (
+                  <div>
+                    <span className="text-muted-foreground">Part:</span>
+                    <span className="ml-2 text-foreground">{movie.part_number}</span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
