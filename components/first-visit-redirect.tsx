@@ -13,10 +13,7 @@ export function FirstVisitRedirect({ children }: FirstVisitRedirectProps) {
   const router = useRouter()
 
   useEffect(() => {
-    console.log('FirstVisitRedirect effect:', { mounted, isFirstVisit })
-    
     if (mounted && isFirstVisit === true) {
-      console.log('Redirecting to welcome page...')
       // Redirect immediately without marking as visited first
       router.push('/welcome')
     }
