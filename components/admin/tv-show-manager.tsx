@@ -1,16 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { createClient } from "@/lib/supabase/client"
 import { searchTMDBTVShow, getTMDBTVShow, getTMDBImageUrl } from "@/lib/tmdb"
-import type { TMDBTVShow } from "@/lib/types"
-import { Search, Plus, Tv } from "lucide-react"
+import type { TMDBTVShow, TVShow } from "@/lib/types"
+import { Search, Plus, Tv, Edit, Trash2 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 
 export function TVShowManager() {
@@ -21,6 +22,106 @@ export function TVShowManager() {
   const [isScheduled, setIsScheduled] = useState(false)
   const [scheduledDate, setScheduledDate] = useState("")
   const [loading, setLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  
+  // Existing TV shows management
+  const [existingShows, setExistingShows] = useState<TVShow[]>([])
+  const [editingShow, setEditingShow] = useState<TVShow | null>(null)
+  const [editTrailerUrl, setEditTrailerUrl] = useState("")
+  const [editIsScheduled, setEditIsScheduled] = useState(false)
+  const [editScheduledDate, setEditScheduledDate] = useState("")
+
+  // Load existing TV shows
+  const loadExistingShows = async () => {
+    const supabase = createClient()
+    try {
+      const { data, error } = await supabase
+        .from("tv_shows")
+        .select("*")
+        .order("created_at", { ascending: false })
+      
+      if (error) throw error
+      setExistingShows(data || [])
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load existing TV shows",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Delete TV show
+  const handleDeleteShow = async (showId: string) => {
+    const supabase = createClient()
+    try {
+      const { error } = await supabase
+        .from("tv_shows")
+        .delete()
+        .eq("id", showId)
+      
+      if (error) throw error
+      
+      toast({
+        title: "Success",
+        description: "TV show deleted successfully",
+      })
+      loadExistingShows()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete TV show",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Edit TV show
+  const handleEditShow = (show: TVShow) => {
+    setEditingShow(show)
+    setEditTrailerUrl(show.trailer_url || "")
+    setEditIsScheduled(show.status === "coming_soon")
+    setEditScheduledDate(show.scheduled_release ? new Date(show.scheduled_release).toISOString().slice(0, 16) : "")
+  }
+
+  // Update TV show
+  const handleUpdateShow = async () => {
+    if (!editingShow) return
+
+    const supabase = createClient()
+    try {
+      const { error } = await supabase
+        .from("tv_shows")
+        .update({
+          trailer_url: editTrailerUrl || null,
+          status: editIsScheduled ? "coming_soon" : "active",
+          scheduled_release: editIsScheduled && editScheduledDate ? new Date(editScheduledDate).toISOString() : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", editingShow.id)
+      
+      if (error) throw error
+      
+      toast({
+        title: "Success",
+        description: "TV show updated successfully",
+      })
+      setEditingShow(null)
+      loadExistingShows()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update TV show",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Load shows on component mount
+  useEffect(() => {
+    setMounted(true)
+    loadExistingShows()
+  }, [])
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
@@ -110,6 +211,7 @@ export function TVShowManager() {
         setTrailerUrl("")
         setIsScheduled(false)
         setScheduledDate("")
+        loadExistingShows()
       }
     } catch (error) {
       toast({
@@ -122,11 +224,22 @@ export function TVShowManager() {
     }
   }
 
+  if (!mounted) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center h-32">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="add-show">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="add-show">Add TV Show</TabsTrigger>
+          <TabsTrigger value="manage-shows">Manage Existing Shows</TabsTrigger>
           <TabsTrigger value="manage-episodes">Manage Episodes</TabsTrigger>
         </TabsList>
 
@@ -248,6 +361,137 @@ export function TVShowManager() {
                   <Button onClick={handleAddTVShow} disabled={loading} className="w-full">
                     {loading ? "Adding..." : "Add TV Show"}
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="manage-shows" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Existing TV Shows ({existingShows.length})</h3>
+            <Button onClick={loadExistingShows} variant="outline">
+              Refresh
+            </Button>
+          </div>
+
+          {existingShows.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <p className="text-muted-foreground">No TV shows found. Add some TV shows to get started.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {existingShows.map((show) => (
+                <Card key={show.id}>
+                  <CardContent className="p-4">
+                    <div className="flex gap-3">
+                      <img
+                        src={getTMDBImageUrl(show.poster_path, "w92") || "/placeholder.svg"}
+                        alt={show.name}
+                        className="w-16 h-24 object-cover rounded"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm truncate">{show.name}</h3>
+                        <p className="text-xs text-muted-foreground">{show.first_air_date}</p>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Badge variant={show.status === "active" ? "default" : "secondary"} className="text-xs">
+                            {show.status}
+                          </Badge>
+                        </div>
+                        <div className="flex gap-1 mt-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditShow(show)}
+                            className="h-8 px-2"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2">
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete TV Show</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{show.name}"? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteShow(show.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Edit TV Show Dialog */}
+          {editingShow && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Edit className="h-5 w-5" />
+                  Edit TV Show: {editingShow.name}
+                </CardTitle>
+                <CardDescription>Update the TV show details</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="edit-trailer-url">Trailer URL (Optional)</Label>
+                    <Input
+                      id="edit-trailer-url"
+                      placeholder="https://youtube.com/watch?v=..."
+                      value={editTrailerUrl}
+                      onChange={(e) => setEditTrailerUrl(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="edit-scheduled"
+                      checked={editIsScheduled}
+                      onChange={(e) => setEditIsScheduled(e.target.checked)}
+                      className="rounded"
+                    />
+                    <Label htmlFor="edit-scheduled">Schedule for later release</Label>
+                  </div>
+
+                  {editIsScheduled && (
+                    <div>
+                      <Label htmlFor="edit-scheduled-date">Release Date</Label>
+                      <Input
+                        id="edit-scheduled-date"
+                        type="datetime-local"
+                        value={editScheduledDate}
+                        onChange={(e) => setEditScheduledDate(e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button onClick={handleUpdateShow} disabled={loading} className="flex-1">
+                      {loading ? "Updating..." : "Update TV Show"}
+                    </Button>
+                    <Button onClick={() => setEditingShow(null)} variant="outline">
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

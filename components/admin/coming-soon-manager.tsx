@@ -13,10 +13,63 @@ import { toast } from "@/hooks/use-toast"
 export function ComingSoonManager() {
   const [comingSoonItems, setComingSoonItems] = useState<(Movie | TVShow)[]>([])
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     fetchComingSoonItems()
+    
+    // Set up auto-refresh every 30 seconds to check for items that should be released
+    const interval = setInterval(() => {
+      checkAndReleaseItems()
+    }, 30000) // Check every 30 seconds
+
+    return () => clearInterval(interval)
   }, [])
+
+  const checkAndReleaseItems = async () => {
+    const supabase = createClient()
+    const now = new Date().toISOString()
+
+    try {
+      // Check for movies that should be released
+      const { data: moviesToRelease, error: movieError } = await supabase
+        .from("movies")
+        .update({ status: "active" })
+        .eq("status", "coming_soon")
+        .lte("scheduled_release", now)
+        .select("id, title")
+
+      if (movieError) throw movieError
+
+      // Check for TV shows that should be released
+      const { data: tvShowsToRelease, error: tvError } = await supabase
+        .from("tv_shows")
+        .update({ status: "active" })
+        .eq("status", "coming_soon")
+        .lte("scheduled_release", now)
+        .select("id, name")
+
+      if (tvError) throw tvError
+
+      // If any items were released, refresh the list and show notification
+      if ((moviesToRelease?.length || 0) + (tvShowsToRelease?.length || 0) > 0) {
+        fetchComingSoonItems()
+        
+        const releasedItems = [
+          ...(moviesToRelease || []).map(item => item.title),
+          ...(tvShowsToRelease || []).map(item => item.name)
+        ]
+        
+        toast({
+          title: "Content Released!",
+          description: `${releasedItems.join(", ")} ${releasedItems.length === 1 ? "is" : "are"} now live!`,
+        })
+      }
+    } catch (error) {
+      console.error("Auto-release check failed:", error)
+    }
+  }
 
   const fetchComingSoonItems = async () => {
     const supabase = createClient()
@@ -76,7 +129,7 @@ export function ComingSoonManager() {
     }
   }
 
-  if (loading) {
+  if (!mounted || loading) {
     return <div className="text-center py-8">Loading coming soon items...</div>
   }
 
