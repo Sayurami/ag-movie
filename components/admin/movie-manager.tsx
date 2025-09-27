@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { createClient } from "@/lib/supabase/client"
 import { searchTMDBMovie, getTMDBMovie, getTMDBImageUrl } from "@/lib/tmdb"
 import type { TMDBMovie, Movie } from "@/lib/types"
-import { Search, Plus, Edit, Trash2, Eye } from "lucide-react"
+import { Search, Plus, Edit, Trash2, Eye, X } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 
 export function MovieManager() {
@@ -27,6 +27,9 @@ export function MovieManager() {
   const [isMultiPart, setIsMultiPart] = useState(false)
   const [partNumber, setPartNumber] = useState(1)
   const [parentMovieId, setParentMovieId] = useState("")
+  const [parentMovieSearch, setParentMovieSearch] = useState("")
+  const [parentMovieResults, setParentMovieResults] = useState<Movie[]>([])
+  const [selectedParentMovie, setSelectedParentMovie] = useState<Movie | null>(null)
   const [loading, setLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
   
@@ -57,6 +60,41 @@ export function MovieManager() {
         variant: "destructive",
       })
     }
+  }
+
+  // Search existing movies for parent selection
+  const searchExistingMovies = async () => {
+    if (!parentMovieSearch.trim()) {
+      setParentMovieResults([])
+      return
+    }
+
+    const supabase = createClient()
+    try {
+      const { data, error } = await supabase
+        .from("movies")
+        .select("*")
+        .ilike("title", `%${parentMovieSearch}%`)
+        .limit(10)
+        .order("created_at", { ascending: false })
+      
+      if (error) throw error
+      setParentMovieResults(data || [])
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to search existing movies",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Select parent movie
+  const selectParentMovie = (movie: Movie) => {
+    setSelectedParentMovie(movie)
+    setParentMovieId(movie.id)
+    setParentMovieSearch(movie.title)
+    setParentMovieResults([])
   }
 
   // Delete movie
@@ -181,14 +219,14 @@ export function MovieManager() {
       return
     }
 
-    if (isMultiPart && !parentMovieId.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide a parent movie ID for multi-part movies",
-        variant: "destructive",
-      })
-      return
-    }
+        if (isMultiPart && !selectedParentMovie) {
+          toast({
+            title: "Missing Information",
+            description: "Please select a parent movie for multi-part movies",
+            variant: "destructive",
+          })
+          return
+        }
 
     setLoading(true)
     const supabase = createClient()
@@ -209,7 +247,7 @@ export function MovieManager() {
         download_url: downloadUrl || null,
         embed_url: embedUrl,
         part_number: isMultiPart ? partNumber : 1,
-        parent_movie_id: isMultiPart && parentMovieId ? parentMovieId : null,
+            parent_movie_id: isMultiPart && selectedParentMovie ? selectedParentMovie.id : null,
         status: isScheduled ? "coming_soon" : "active",
         scheduled_release: isScheduled && scheduledDate ? new Date(scheduledDate).toISOString() : null,
       }
@@ -235,12 +273,15 @@ export function MovieManager() {
         setEmbedUrl("")
         setTrailerUrl("")
         setDownloadUrl("")
-        setIsScheduled(false)
-        setScheduledDate("")
-        setIsMultiPart(false)
-        setPartNumber(1)
-        setParentMovieId("")
-        loadExistingMovies()
+            setIsScheduled(false)
+            setScheduledDate("")
+            setIsMultiPart(false)
+            setPartNumber(1)
+            setParentMovieId("")
+            setParentMovieSearch("")
+            setSelectedParentMovie(null)
+            setParentMovieResults([])
+            loadExistingMovies()
       }
     } catch (error) {
       toast({
@@ -408,14 +449,89 @@ export function MovieManager() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="parent-movie-id">Parent Movie ID (Optional)</Label>
-                        <Input
-                          id="parent-movie-id"
-                          placeholder="UUID of the main movie"
-                          value={parentMovieId}
-                          onChange={(e) => setParentMovieId(e.target.value)}
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">Leave empty for the first part</p>
+                        <Label htmlFor="parent-movie-search">Parent Movie (Optional)</Label>
+                        <div className="relative">
+                          <Input
+                            id="parent-movie-search"
+                            placeholder="Search for the main movie..."
+                            value={parentMovieSearch}
+                            onChange={(e) => {
+                              setParentMovieSearch(e.target.value)
+                              if (e.target.value.trim()) {
+                                searchExistingMovies()
+                              } else {
+                                setParentMovieResults([])
+                                setSelectedParentMovie(null)
+                                setParentMovieId("")
+                              }
+                            }}
+                          />
+                          {parentMovieResults.length > 0 && (
+                            <div className="absolute z-10 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                              {parentMovieResults.map((movie) => (
+                                <div
+                                  key={movie.id}
+                                  className="p-3 hover:bg-muted cursor-pointer border-b border-border last:border-b-0"
+                                  onClick={() => selectParentMovie(movie)}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <img
+                                      src={getTMDBImageUrl(movie.poster_path, "w92") || "/placeholder.svg?height=92&width=62"}
+                                      alt={movie.title}
+                                      className="w-12 h-16 object-cover rounded"
+                                    />
+                                    <div>
+                                      <p className="font-medium text-sm">{movie.title}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {movie.release_date ? new Date(movie.release_date).getFullYear() : "Unknown Year"}
+                                      </p>
+                                      {movie.part_number && movie.part_number > 1 && (
+                                        <Badge variant="secondary" className="text-xs mt-1">
+                                          Part {movie.part_number}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {selectedParentMovie && (
+                          <div className="mt-2 p-3 bg-muted rounded-md">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={getTMDBImageUrl(selectedParentMovie.poster_path, "w92") || "/placeholder.svg?height=92&width=62"}
+                                alt={selectedParentMovie.title}
+                                className="w-12 h-16 object-cover rounded"
+                              />
+                              <div>
+                                <p className="font-medium text-sm">Selected: {selectedParentMovie.title}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {selectedParentMovie.release_date ? new Date(selectedParentMovie.release_date).getFullYear() : "Unknown Year"}
+                                </p>
+                                {selectedParentMovie.part_number && selectedParentMovie.part_number > 1 && (
+                                  <Badge variant="secondary" className="text-xs mt-1">
+                                    Part {selectedParentMovie.part_number}
+                                  </Badge>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedParentMovie(null)
+                                  setParentMovieId("")
+                                  setParentMovieSearch("")
+                                }}
+                                className="ml-auto"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">Search and select the main movie for multi-part series</p>
                       </div>
                     </div>
                   )}

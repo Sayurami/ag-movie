@@ -50,15 +50,23 @@ export function EpisodePlayer({ episode, tvShow }: EpisodePlayerProps) {
                   alt={episode.name}
                   className="w-full rounded-lg shadow-lg"
                 />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-lg">
+                <div 
+                  className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-lg"
+                  style={{
+                    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${getTMDBImageUrl(tvShow.poster_path, "w500")})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
+                  }}
+                >
                   <div className="flex flex-col sm:flex-row gap-4 items-center">
-                    <Button size="lg" onClick={handlePlay} className="text-xl px-8 py-4">
+                    <Button size="lg" onClick={handlePlay} className="text-xl px-8 py-4 bg-primary/90 hover:bg-primary backdrop-blur-sm">
                       <Play className="h-6 w-6 mr-3" />
                       Play Episode
                     </Button>
                     
                     {episode.download_url && (
-                      <Button size="lg" variant="outline" asChild className="text-xl px-8 py-4">
+                      <Button size="lg" variant="outline" asChild className="text-xl px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm border-white/30 text-white">
                         <a href={episode.download_url} target="_blank" rel="noopener noreferrer">
                           <Download className="h-6 w-6 mr-3" />
                           Download
