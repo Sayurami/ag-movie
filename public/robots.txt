@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://your-domain.vercel.app/sitemap.xml
+
+# Disallow admin and API routes
+Disallow: /admin/
+Disallow: /api/
+Disallow: /welcome/
+
+# Allow all movie and TV show pages
+Allow: /movies/
+Allow: /tv-shows/
+Allow: /movie/
+Allow: /tv/
+Allow: /categories/
+Allow: /coming-soon/
+Allow: /search/
+
+# Crawl delay (optional - be respectful)
+Crawl-delay: 1

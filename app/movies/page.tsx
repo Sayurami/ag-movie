@@ -1,8 +1,10 @@
+import { Metadata } from "next"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { MovieGrid } from "@/components/movie-grid"
 import { FilterSidebar } from "@/components/filter-sidebar"
 import { getMoviesServer } from "@/lib/database"
+import { generatePageMetadata } from "@/lib/seo"
 
 interface MoviesPageProps {
   searchParams: Promise<{
@@ -13,6 +15,12 @@ interface MoviesPageProps {
     search?: string
   }>
 }
+
+export const metadata: Metadata = generatePageMetadata(
+  "Movies",
+  "Browse and watch the latest movies online. Stream HD movies from various genres including action, comedy, drama, thriller and more.",
+  "/movies"
+)
 
 export default async function MoviesPage({ searchParams }: MoviesPageProps) {
   const params = await searchParams

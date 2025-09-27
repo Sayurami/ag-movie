@@ -254,3 +254,27 @@ export async function getEpisodesByTVShowServer(tvShowId: string): Promise<Episo
 
   return data || []
 }
+
+export async function getMovieByIdServer(id: string): Promise<Movie | null> {
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+      },
+    },
+  )
+
+  const { data, error } = await supabase.from("movies").select("*").eq("id", id).single()
+
+  if (error) {
+    console.error("Error fetching movie:", error)
+    return null
+  }
+
+  return data
+}

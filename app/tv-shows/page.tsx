@@ -1,8 +1,10 @@
+import { Metadata } from "next"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { TVShowGrid } from "@/components/tv-show-grid"
 import { FilterSidebar } from "@/components/filter-sidebar"
 import { getTVShowsServer } from "@/lib/database"
+import { generatePageMetadata } from "@/lib/seo"
 
 interface TVShowsPageProps {
   searchParams: Promise<{
@@ -13,6 +15,12 @@ interface TVShowsPageProps {
     search?: string
   }>
 }
+
+export const metadata: Metadata = generatePageMetadata(
+  "TV Shows",
+  "Watch the latest TV shows and series online. Stream HD TV shows from various genres including drama, comedy, action, sci-fi and more.",
+  "/tv-shows"
+)
 
 export default async function TVShowsPage({ searchParams }: TVShowsPageProps) {
   const params = await searchParams
