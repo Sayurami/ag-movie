@@ -11,25 +11,35 @@ export default async function CategoriesPage() {
 
   // Get movie and TV show counts for each genre
   const genresWithCounts = await Promise.all(
-    (genres || []).map(async (genre) => {
-      const [{ count: movieCount }, { count: tvShowCount }] = await Promise.all([
-        supabase
+    genres.map(async (genre) => {
+      try {
+        // Use the working filter approach with JSONB contains operator
+        const { count: movieCount } = await supabase
           .from("movies")
           .select("*", { count: "exact", head: true })
           .eq("status", "active")
-          .contains("genres", [{ id: genre.tmdb_id }]),
-        supabase
+          .filter("genres", "cs", `[{"id": ${genre.tmdb_id}}]`)
+        
+        const { count: tvShowCount } = await supabase
           .from("tv_shows")
           .select("*", { count: "exact", head: true })
           .eq("status", "active")
-          .contains("genres", [{ id: genre.tmdb_id }]),
-      ])
+          .filter("genres", "cs", `[{"id": ${genre.tmdb_id}}]`)
 
-      return {
-        ...genre,
-        movieCount: movieCount || 0,
-        tvShowCount: tvShowCount || 0,
-        totalCount: (movieCount || 0) + (tvShowCount || 0),
+        return {
+          ...genre,
+          movieCount: movieCount || 0,
+          tvShowCount: tvShowCount || 0,
+          totalCount: (movieCount || 0) + (tvShowCount || 0),
+        }
+      } catch (error) {
+        console.error(`Error getting counts for genre ${genre.name}:`, error)
+        return {
+          ...genre,
+          movieCount: 0,
+          tvShowCount: 0,
+          totalCount: 0,
+        }
       }
     }),
   )
