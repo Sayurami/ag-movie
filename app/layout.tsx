@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://your-domain.vercel.app",
+    url: "https://ag.micorp.pro",
     siteName: "AG Movies",
     title: "AG MOVIES - Stream Movies & TV Shows",
     description: "Your ultimate destination for streaming movies and TV shows. Watch the latest movies and TV series online in HD quality.",
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     google: "your-google-verification-code",
   },
   alternates: {
-    canonical: "https://your-domain.vercel.app",
+    canonical: "https://ag.micorp.pro",
   },
 }
 
