@@ -1,19 +1,36 @@
 import { notFound } from "next/navigation"
+import { Metadata } from "next"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { MoviePlayer } from "@/components/movie-player"
 import { MovieDetails } from "@/components/movie-details"
 import { MovieCarousel } from "@/components/movie-carousel"
-import { getMovieById, getMoviesServer } from "@/lib/database"
+import { StructuredData } from "@/components/seo/structured-data"
+import { getMovieByIdServer, getMoviesServer } from "@/lib/database"
+import { generateMovieMetadata } from "@/lib/seo"
 
 interface MoviePageProps {
   params: Promise<{ id: string }>
 }
 
+export async function generateMetadata({ params }: MoviePageProps): Promise<Metadata> {
+  const { id } = await params
+  const movie = await getMovieByIdServer(id)
+  
+  if (!movie) {
+    return {
+      title: 'Movie Not Found',
+      description: 'The requested movie could not be found.'
+    }
+  }
+  
+  return generateMovieMetadata(movie)
+}
+
 export default async function MoviePage({ params }: MoviePageProps) {
   const { id } = await params
 
-  const movie = await getMovieById(id)
+  const movie = await getMovieByIdServer(id)
 
   if (!movie) {
     notFound()
@@ -31,6 +48,7 @@ export default async function MoviePage({ params }: MoviePageProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      <StructuredData type="movie" data={movie} />
       <Navigation />
 
       <main className="pt-16">

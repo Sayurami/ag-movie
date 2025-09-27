@@ -1,3 +1,4 @@
+import { Metadata } from "next"
 import { HeroSection } from "@/components/hero-section"
 import { MovieCarousel } from "@/components/movie-carousel"
 import { TVShowCarousel } from "@/components/tv-show-carousel"
@@ -5,6 +6,13 @@ import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { FirstVisitRedirect } from "@/components/first-visit-redirect"
 import { getMoviesServer, getTVShowsServer } from "@/lib/database"
+import { generatePageMetadata } from "@/lib/seo"
+
+export const metadata: Metadata = generatePageMetadata(
+  "Home",
+  "Watch the latest movies and TV shows online in HD quality. Stream trending movies, popular TV series, and discover new content on AG Movies.",
+  "/"
+)
 
 export default async function HomePage() {
   const [allMovies, allTVShows] = await Promise.all([
