@@ -6,12 +6,18 @@ import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { TVShow } from "@/lib/types"
 import { Play, Plus } from "lucide-react"
 import Link from "next/link"
+import { TVShowGridSkeleton } from "@/components/skeletons/tv-show-grid-skeleton"
 
 interface TVShowGridProps {
   tvShows: TVShow[]
+  loading?: boolean
 }
 
-export function TVShowGrid({ tvShows }: TVShowGridProps) {
+export function TVShowGrid({ tvShows, loading }: TVShowGridProps) {
+  if (loading) {
+    return <TVShowGridSkeleton count={12} />
+  }
+
   if (tvShows.length === 0) {
     return (
       <div className="text-center py-12">

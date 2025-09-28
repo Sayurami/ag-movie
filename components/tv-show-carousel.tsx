@@ -8,13 +8,15 @@ import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { TVShow } from "@/lib/types"
 import { ChevronLeft, ChevronRight, Play } from "lucide-react"
 import Link from "next/link"
+import { CarouselSkeleton } from "@/components/skeletons/carousel-skeleton"
 
 interface TVShowCarouselProps {
   title: string
   tvShows: TVShow[]
+  loading?: boolean
 }
 
-export function TVShowCarousel({ title, tvShows }: TVShowCarouselProps) {
+export function TVShowCarousel({ title, tvShows, loading }: TVShowCarouselProps) {
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -38,6 +40,10 @@ export function TVShowCarousel({ title, tvShows }: TVShowCarouselProps) {
 
     setCanScrollLeft(container.scrollLeft > 0)
     setCanScrollRight(container.scrollLeft < container.scrollWidth - container.clientWidth - 10)
+  }
+
+  if (loading) {
+    return <CarouselSkeleton title={title} itemCount={6} />
   }
 
   if (tvShows.length === 0) return null

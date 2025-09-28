@@ -6,12 +6,18 @@ import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { Movie } from "@/lib/types"
 import { Play, Plus } from "lucide-react"
 import Link from "next/link"
+import { MovieGridSkeleton } from "@/components/skeletons/movie-grid-skeleton"
 
 interface MovieGridProps {
   movies: Movie[]
+  loading?: boolean
 }
 
-export function MovieGrid({ movies }: MovieGridProps) {
+export function MovieGrid({ movies, loading }: MovieGridProps) {
+  if (loading) {
+    return <MovieGridSkeleton count={12} />
+  }
+
   if (movies.length === 0) {
     return (
       <div className="text-center py-12">
