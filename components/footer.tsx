@@ -4,7 +4,7 @@ export function Footer() {
   return (
     <footer className="bg-card border-t border-border">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           <div>
             <div className="flex items-center space-x-2 mb-4">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -73,8 +73,29 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/faq" className="text-muted-foreground hover:text-foreground transition-colors">
+                  FAQ
+                </Link>
+              </li>
+              <li>
                 <Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors">
                   Contact Us
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-foreground mb-4">Company</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link href="/team" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Our Team
                 </Link>
               </li>
               <li>
@@ -92,7 +113,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-border mt-8 pt-8 text-center">
-          <p className="text-muted-foreground text-sm">© 2025 AG MOVIES. All rights reserved.</p>
+          <p className="text-muted-foreground text-sm">© 2025 AG MOVIES by Mirror Corporation (micorp.pro). All rights reserved.</p>
         </div>
       </div>
     </footer>

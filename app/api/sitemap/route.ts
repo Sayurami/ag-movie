@@ -33,6 +33,13 @@ export async function GET() {
       { url: `${baseUrl}/categories`, priority: 0.8, changefreq: 'weekly' },
       { url: `${baseUrl}/coming-soon`, priority: 0.7, changefreq: 'daily' },
       { url: `${baseUrl}/search`, priority: 0.6, changefreq: 'monthly' },
+      { url: `${baseUrl}/about`, priority: 0.7, changefreq: 'monthly' },
+      { url: `${baseUrl}/team`, priority: 0.6, changefreq: 'monthly' },
+      { url: `${baseUrl}/help`, priority: 0.6, changefreq: 'weekly' },
+      { url: `${baseUrl}/faq`, priority: 0.6, changefreq: 'weekly' },
+      { url: `${baseUrl}/contact`, priority: 0.5, changefreq: 'monthly' },
+      { url: `${baseUrl}/privacy`, priority: 0.4, changefreq: 'yearly' },
+      { url: `${baseUrl}/terms`, priority: 0.4, changefreq: 'yearly' },
     ]
 
     const moviePages = movies.map(movie => ({
