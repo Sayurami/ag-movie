@@ -27,6 +27,7 @@ export function AutoReleaseStatus() {
           .from("movies")
           .select("*")
           .eq("status", "coming_soon")
+          .or("part_number.is.null,part_number.eq.1") // Only show standalone movies or Part 1
           .not("scheduled_release", "is", null)
           .order("scheduled_release", { ascending: true }),
         supabase

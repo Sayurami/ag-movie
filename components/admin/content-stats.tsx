@@ -24,9 +24,9 @@ export function ContentStats() {
       try {
         const [moviesResult, tvShowsResult, comingSoonMoviesResult, comingSoonTVResult, episodesResult] =
           await Promise.all([
-            supabase.from("movies").select("id", { count: "exact" }).eq("status", "active"),
+            supabase.from("movies").select("id", { count: "exact" }).eq("status", "active").or("part_number.is.null,part_number.eq.1"), // Only count standalone movies or Part 1
             supabase.from("tv_shows").select("id", { count: "exact" }).eq("status", "active"),
-            supabase.from("movies").select("id", { count: "exact" }).eq("status", "coming_soon"),
+            supabase.from("movies").select("id", { count: "exact" }).eq("status", "coming_soon").or("part_number.is.null,part_number.eq.1"), // Only count standalone movies or Part 1
             supabase.from("tv_shows").select("id", { count: "exact" }).eq("status", "coming_soon"),
             supabase.from("episodes").select("id", { count: "exact" }),
           ])

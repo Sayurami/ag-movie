@@ -13,6 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .from("movies")
         .select("id, title, updated_at")
         .eq("status", "active")
+        .or("part_number.is.null,part_number.eq.1") // Only include standalone movies or Part 1
         .order("created_at", { ascending: false })
         .limit(1000),
       supabase

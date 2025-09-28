@@ -40,7 +40,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   if (type === "all" || type === "movies") {
     searchPromises.push(
-      supabase.from("movies").select("*").eq("status", "active").ilike("title", `%${query}%`).limit(20),
+      supabase
+        .from("movies")
+        .select("*")
+        .eq("status", "active")
+        .or("part_number.is.null,part_number.eq.1") // Only show standalone movies or Part 1
+        .ilike("title", `%${query}%`)
+        .limit(20),
     )
   } else {
     searchPromises.push(Promise.resolve({ data: [] }))
