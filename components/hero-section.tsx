@@ -52,7 +52,11 @@ export function HeroSection({ movie }: HeroSectionProps) {
             )}
           </div>
 
-          <p className="text-lg text-muted-foreground mb-8 text-pretty leading-relaxed">{movie.overview}</p>
+          <p className="hidden md:block text-lg text-muted-foreground mb-8 text-pretty leading-relaxed line-clamp-3">
+            {movie.overview && movie.overview.length > 200 
+              ? `${movie.overview.substring(0, 200)}...` 
+              : movie.overview}
+          </p>
 
           <div className="flex flex-col sm:flex-row gap-4">
             <Button asChild size="lg" className="text-lg px-8">

@@ -12,7 +12,7 @@ import { Filter, X } from "lucide-react"
 
 interface FilterSidebarProps {
   genres: Genre[]
-  type: "movies" | "tv-shows"
+  type: "movies" | "tv-shows" | "list"
 }
 
 export function FilterSidebar({ genres, type }: FilterSidebarProps) {
@@ -24,6 +24,7 @@ export function FilterSidebar({ genres, type }: FilterSidebarProps) {
   const currentSort = searchParams.get("sort") || "newest"
   const currentYear = searchParams.get("year")
   const currentRating = searchParams.get("rating") || "0"
+  const currentType = searchParams.get("type")
 
   const updateFilter = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -32,14 +33,16 @@ export function FilterSidebar({ genres, type }: FilterSidebarProps) {
     } else {
       params.delete(key)
     }
-    router.push(`/${type}?${params.toString()}`)
+    const basePath = type === 'list' ? '/list' : `/${type}`
+    router.push(`${basePath}?${params.toString()}`)
   }
 
   const clearFilters = () => {
-    router.push(`/${type}`)
+    const basePath = type === 'list' ? '/list' : `/${type}`
+    router.push(basePath)
   }
 
-  const hasActiveFilters = currentGenre || currentYear || Number.parseFloat(currentRating) > 0
+  const hasActiveFilters = currentGenre || currentYear || Number.parseFloat(currentRating) > 0 || currentType
 
   const currentYearInt = currentYear ? Number.parseInt(currentYear) : new Date().getFullYear()
   const years = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i)
@@ -55,7 +58,7 @@ export function FilterSidebar({ genres, type }: FilterSidebarProps) {
       </div>
 
       {/* Filter Sidebar */}
-      <div className={`lg:block ${isOpen ? "block" : "hidden"} w-full lg:w-64 space-y-6`}>
+      <div className={`lg:block ${isOpen ? "block" : "hidden"} w-full lg:w-64 space-y-4 lg:space-y-6`}>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -68,6 +71,23 @@ export function FilterSidebar({ genres, type }: FilterSidebarProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Content Type (only for list page) */}
+            {type === 'list' && (
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">Content Type</label>
+                <Select value={currentType || "all"} onValueChange={(value) => updateFilter("type", value === "all" ? null : value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All content" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Content</SelectItem>
+                    <SelectItem value="movie">Movies Only</SelectItem>
+                    <SelectItem value="tv">TV Shows Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Sort */}
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">Sort By</label>

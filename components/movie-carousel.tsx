@@ -86,7 +86,7 @@ export function MovieCarousel({ title, movies, loading }: MovieCarouselProps) {
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {movies.map((movie) => (
-              <div key={movie.id} className="flex-none w-48 group/item">
+              <Link key={movie.id} href={`/movie/${movie.id}`} className="flex-none w-48 group/item cursor-pointer">
                 <div className="relative overflow-hidden rounded-lg bg-card">
                   <img
                     src={getTMDBImageUrl(movie.poster_path) || "/placeholder.svg?height=288&width=192"}
@@ -97,7 +97,7 @@ export function MovieCarousel({ title, movies, loading }: MovieCarouselProps) {
                   {/* Overlay */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center">
                     <div className="flex gap-2">
-                      <Button asChild size="sm">
+                      <Button asChild size="sm" onClick={(e) => e.preventDefault()}>
                         <Link href={`/movie/${movie.id}`}>
                           <Play className="h-4 w-4" />
                         </Link>
@@ -112,6 +112,7 @@ export function MovieCarousel({ title, movies, loading }: MovieCarouselProps) {
                         variant="secondary"
                         size="sm"
                         showText={false}
+                        onClick={(e) => e.stopPropagation()}
                       />
                     </div>
                   </div>
@@ -128,7 +129,7 @@ export function MovieCarousel({ title, movies, loading }: MovieCarouselProps) {
                     {movie.release_date ? new Date(movie.release_date).getFullYear() : ""}
                   </p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

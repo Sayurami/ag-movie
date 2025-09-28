@@ -18,7 +18,7 @@ interface GenreCardProps {
 export function GenreCard({ genre }: GenreCardProps) {
   return (
     <Card className="group hover:bg-accent/50 transition-colors cursor-pointer">
-      <Link href={`/movies?genre=${encodeURIComponent(genre.name)}`}>
+      <Link href={`/list?genre=${encodeURIComponent(genre.name)}`}>
         <CardContent className="p-6">
           <div className="text-center">
             <h3 className="text-xl font-semibold text-foreground mb-4 group-hover:text-primary transition-colors">
