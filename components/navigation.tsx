@@ -57,8 +57,8 @@ export function Navigation() {
   const mobileNavItems = [
     { href: "/", label: "Home", icon: Home },
     { href: "/movies", label: "Movies", icon: Film },
-    { href: "/tv-shows", label: "TV Shows", icon: Tv },
-    { href: "/coming-soon", label: "Coming Soon", icon: Clock },
+    { href: "/tv-shows", label: "Shows", icon: Tv },
+    { href: "/coming-soon", label: "Coming", icon: Clock },
     { href: "/watchlist", label: "My List", icon: Bookmark },
   ]
 
