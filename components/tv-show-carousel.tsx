@@ -86,7 +86,7 @@ export function TVShowCarousel({ title, tvShows, loading }: TVShowCarouselProps)
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {tvShows.map((show) => (
-              <div key={show.id} className="flex-none w-48 group/item">
+              <Link key={show.id} href={`/tv/${show.id}`} className="flex-none w-48 group/item cursor-pointer">
                 <div className="relative overflow-hidden rounded-lg bg-card">
                   <img
                     src={getTMDBImageUrl(show.poster_path) || "/placeholder.svg?height=288&width=192"}
@@ -97,7 +97,7 @@ export function TVShowCarousel({ title, tvShows, loading }: TVShowCarouselProps)
                   {/* Overlay */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center">
                     <div className="flex gap-2">
-                      <Button asChild size="sm">
+                      <Button asChild size="sm" onClick={(e) => e.preventDefault()}>
                         <Link href={`/tv/${show.id}`}>
                           <Play className="h-4 w-4" />
                         </Link>
@@ -112,6 +112,7 @@ export function TVShowCarousel({ title, tvShows, loading }: TVShowCarouselProps)
                         variant="secondary"
                         size="sm"
                         showText={false}
+                        onClick={(e) => e.stopPropagation()}
                       />
                     </div>
                   </div>
@@ -128,7 +129,7 @@ export function TVShowCarousel({ title, tvShows, loading }: TVShowCarouselProps)
                     {show.first_air_date ? new Date(show.first_air_date).getFullYear() : ""}
                   </p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

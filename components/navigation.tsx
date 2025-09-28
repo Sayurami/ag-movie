@@ -1,15 +1,49 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { SearchModal } from "@/components/search-modal"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
-import { Search, Menu, X, ChevronDown } from "lucide-react"
+import { PWAInstallGuide } from "@/components/pwa-install-guide"
+import { Search, Home, Clock, Bookmark, Grid3X3, Download, Film, Tv } from "lucide-react"
 
 export function Navigation() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isInstalled, setIsInstalled] = useState(false)
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const pathname = usePathname()
+
+  useEffect(() => {
+    // Check if app is already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true)
+      return
+    }
+
+    // Listen for the beforeinstallprompt event
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    }
+  }, [])
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt()
+      const { outcome } = await deferredPrompt.userChoice
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null)
+        setIsInstalled(true)
+      }
+    }
+  }
 
   const navItems = [
     { href: "/", label: "Home" },
@@ -20,22 +54,23 @@ export function Navigation() {
     { href: "/watchlist", label: "My List" },
   ]
 
-  const moreItems = [
-    { href: "/about", label: "About Us" },
-    { href: "/team", label: "Our Team" },
-    { href: "/help", label: "Help Center" },
-    { href: "/faq", label: "FAQ" },
-    { href: "/contact", label: "Contact Us" },
+  const mobileNavItems = [
+    { href: "/", label: "Home", icon: Home },
+    { href: "/movies", label: "Movies", icon: Film },
+    { href: "/tv-shows", label: "TV Shows", icon: Tv },
+    { href: "/coming-soon", label: "Coming Soon", icon: Clock },
+    { href: "/watchlist", label: "My List", icon: Bookmark },
   ]
 
-  const legalItems = [
-    { href: "/privacy", label: "Privacy Policy" },
-    { href: "/terms", label: "Terms of Service" },
-  ]
+  // Add install button to mobile nav if not installed
+  const allMobileNavItems = isInstalled 
+    ? mobileNavItems 
+    : [...mobileNavItems, { href: "#", label: "Install", icon: Download, isInstall: true }]
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+      {/* Desktop Navigation */}
+      <nav className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -47,7 +82,7 @@ export function Navigation() {
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
+            <div className="flex items-center space-x-8">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
@@ -57,32 +92,12 @@ export function Navigation() {
                   {item.label}
                 </Link>
               ))}
-              
-              {/* More Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-                    More <ChevronDown className="h-4 w-4 ml-1" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  {moreItems.map((item) => (
-                    <DropdownMenuItem key={item.href} asChild>
-                      <Link href={item.href}>{item.label}</Link>
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  {legalItems.map((item) => (
-                    <DropdownMenuItem key={item.href} asChild>
-                      <Link href={item.href}>{item.label}</Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
 
-            {/* Search and Mobile Menu */}
+            {/* Search and Install */}
             <div className="flex items-center space-x-4">
+              <PWAInstallGuide />
+              
               <Button
                 variant="ghost"
                 size="sm"
@@ -91,68 +106,63 @@ export function Navigation() {
               >
                 <Search className="h-5 w-5" />
               </Button>
-
-              {/* Mobile Menu Button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="md:hidden"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              >
-                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </Button>
             </div>
           </div>
-
-          {/* Mobile Navigation */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden border-t border-border py-4">
-              <div className="flex flex-col space-y-4">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-                
-                {/* Mobile More Items */}
-                <div className="border-t border-border pt-4 mt-4">
-                  <div className="text-sm font-medium text-muted-foreground px-2 py-1 mb-2">More</div>
-                  {moreItems.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="text-muted-foreground hover:text-foreground transition-colors px-2 py-1 block"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-                
-                {/* Mobile Legal Items */}
-                <div className="border-t border-border pt-4 mt-4">
-                  <div className="text-sm font-medium text-muted-foreground px-2 py-1 mb-2">Legal</div>
-                  {legalItems.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="text-muted-foreground hover:text-foreground transition-colors px-2 py-1 block"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </nav>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border">
+        <div className="flex items-center justify-start overflow-x-auto py-3 px-2 space-x-1">
+          {allMobileNavItems.map((item) => {
+            const IconComponent = item.icon
+            const isActive = pathname === item.href
+            const isInstallButton = item.isInstall
+            
+            if (isInstallButton) {
+              return (
+                <button
+                  key="install"
+                  onClick={handleInstallClick}
+                  className="flex flex-col items-center justify-center py-2 px-3 text-muted-foreground hover:text-foreground transition-colors min-w-[60px]"
+                >
+                  <IconComponent className="h-5 w-5 mb-1" />
+                  <span className="text-xs font-medium">Install</span>
+                </button>
+              )
+            }
+            
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex flex-col items-center justify-center py-2 px-3 transition-colors min-w-[60px] ${
+                  isActive 
+                    ? 'text-blue-500' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <IconComponent className="h-5 w-5 mb-1" />
+                <span className="text-xs font-medium">{item.label}</span>
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
+
+      {/* Floating Categories Button for Mobile */}
+      <div className="md:hidden fixed top-4 right-4 z-50">
+        <Button
+          asChild
+          size="sm"
+          className="bg-background/80 backdrop-blur-md border border-border hover:bg-background/90 shadow-lg"
+        >
+          <Link href="/categories" className="flex items-center gap-2">
+            <Grid3X3 className="h-4 w-4" />
+            <span className="text-sm font-medium">Categories</span>
+          </Link>
+        </Button>
+      </div>
 
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
