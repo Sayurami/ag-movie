@@ -1,8 +1,10 @@
 User-agent: *
 Allow: /
 
-# Sitemap location
+# Sitemap locations
 Sitemap: https://ag.micorp.pro/sitemap.xml
+Sitemap: https://ag.micorp.pro/sitemap-index.xml
+Sitemap: https://ag.micorp.pro/api/sitemap
 
 # Disallow admin and API routes
 Disallow: /admin/
@@ -17,6 +19,3 @@ Allow: /tv/
 Allow: /categories/
 Allow: /coming-soon/
 Allow: /search/
-
-# Crawl delay (optional - be respectful)
-Crawl-delay: 1

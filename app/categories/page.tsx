@@ -18,6 +18,7 @@ export default async function CategoriesPage() {
           .from("movies")
           .select("*", { count: "exact", head: true })
           .eq("status", "active")
+          .or("part_number.is.null,part_number.eq.1") // Only count standalone movies or Part 1
           .filter("genres", "cs", `[{"id": ${genre.tmdb_id}}]`)
         
         const { count: tvShowCount } = await supabase

@@ -41,6 +41,12 @@ export function MovieManager() {
   const [editDownloadUrl, setEditDownloadUrl] = useState("")
   const [editIsScheduled, setEditIsScheduled] = useState(false)
   const [editScheduledDate, setEditScheduledDate] = useState("")
+  
+  // Add part to existing movie
+  const [addingPartToMovie, setAddingPartToMovie] = useState<Movie | null>(null)
+  const [partEmbedUrl, setPartEmbedUrl] = useState("")
+  const [partDownloadUrl, setPartDownloadUrl] = useState("")
+  const [newPartNumber, setNewPartNumber] = useState(2)
 
   // Load existing movies
   const loadExistingMovies = async () => {
@@ -219,37 +225,205 @@ export function MovieManager() {
       return
     }
 
-        if (isMultiPart && !selectedParentMovie) {
-          toast({
-            title: "Missing Information",
-            description: "Please select a parent movie for multi-part movies",
-            variant: "destructive",
-          })
-          return
-        }
+    // For multi-part movies: Part 1 doesn't need parent, other parts do
+    if (isMultiPart && partNumber > 1 && !selectedParentMovie) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a parent movie for multi-part movies (Part 2+)",
+        variant: "destructive",
+      })
+      return
+    }
 
     setLoading(true)
     const supabase = createClient()
 
     try {
+      // Check if this is adding a part to an existing movie
+      if (isMultiPart && partNumber > 1 && selectedParentMovie) {
+        // Check if this part already exists
+        const { data: existingPart, error: checkError } = await supabase
+          .from("movies")
+          .select("id")
+          .eq("parent_movie_id", selectedParentMovie.id)
+          .eq("part_number", partNumber)
+          .single()
+
+        if (checkError && checkError.code !== "PGRST116") { // PGRST116 = no rows returned
+          throw checkError
+        }
+
+        if (existingPart) {
+          toast({
+            title: "Part Already Exists",
+            description: `Part ${partNumber} of this movie already exists`,
+            variant: "destructive",
+          })
+          return
+        }
+        // Add a new part to existing movie
+        const movieData = {
+          tmdb_id: selectedParentMovie.tmdb_id + partNumber, // Make unique by adding part number
+          title: `${selectedParentMovie.title.replace(/ - Part \d+$/, '')} - Part ${partNumber}`,
+          overview: selectedParentMovie.overview,
+          poster_path: selectedParentMovie.poster_path,
+          backdrop_path: selectedParentMovie.backdrop_path,
+          release_date: selectedParentMovie.release_date,
+          runtime: selectedParentMovie.runtime,
+          vote_average: selectedParentMovie.vote_average,
+          vote_count: selectedParentMovie.vote_count,
+          genres: selectedParentMovie.genres,
+          trailer_url: trailerUrl || null,
+          download_url: downloadUrl || null,
+          embed_url: embedUrl,
+          part_number: partNumber,
+          parent_movie_id: selectedParentMovie.id,
+          status: isScheduled ? "coming_soon" : "active",
+          scheduled_release: isScheduled && scheduledDate ? new Date(scheduledDate).toISOString() : null,
+        }
+
+        const { error } = await supabase.from("movies").insert([movieData])
+
+        if (error) {
+          if (error.code === "23505") {
+            toast({
+              title: "Part Already Exists",
+              description: `Part ${partNumber} of this movie already exists`,
+              variant: "destructive",
+            })
+          } else {
+            throw error
+          }
+        } else {
+          toast({
+            title: "Success",
+            description: `Part ${partNumber} added successfully`,
+          })
+          resetForm()
+          loadExistingMovies()
+        }
+      } else {
+        // Create new movie (Part 1 or standalone)
+        const movieData = {
+          tmdb_id: selectedMovie.id,
+          title: isMultiPart ? `${selectedMovie.title} - Part ${partNumber}` : selectedMovie.title,
+          overview: selectedMovie.overview,
+          poster_path: selectedMovie.poster_path,
+          backdrop_path: selectedMovie.backdrop_path,
+          release_date: selectedMovie.release_date,
+          runtime: selectedMovie.runtime,
+          vote_average: selectedMovie.vote_average,
+          vote_count: selectedMovie.vote_count,
+          genres: selectedMovie.genres,
+          trailer_url: trailerUrl || null,
+          download_url: downloadUrl || null,
+          embed_url: embedUrl,
+          part_number: isMultiPart ? partNumber : 1,
+          parent_movie_id: null, // Part 1 is the parent
+          status: isScheduled ? "coming_soon" : "active",
+          scheduled_release: isScheduled && scheduledDate ? new Date(scheduledDate).toISOString() : null,
+        }
+
+        const { error } = await supabase.from("movies").insert([movieData])
+
+        if (error) {
+          if (error.code === "23505") {
+            toast({
+              title: "Movie Already Exists",
+              description: "This movie is already in the database",
+              variant: "destructive",
+            })
+          } else {
+            throw error
+          }
+        } else {
+          toast({
+            title: "Success",
+            description: `Movie "${movieData.title}" added successfully`,
+          })
+          resetForm()
+          loadExistingMovies()
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add movie to database",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const resetForm = () => {
+    setSelectedMovie(null)
+    setEmbedUrl("")
+    setTrailerUrl("")
+    setDownloadUrl("")
+    setIsScheduled(false)
+    setScheduledDate("")
+    setIsMultiPart(false)
+    setPartNumber(1)
+    setParentMovieId("")
+    setParentMovieSearch("")
+    setSelectedParentMovie(null)
+    setParentMovieResults([])
+  }
+
+  const handleAddPartToMovie = async () => {
+    if (!addingPartToMovie || !partEmbedUrl.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide an embed URL for the new part",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    const supabase = createClient()
+
+    try {
+      // Check if this part already exists
+      const { data: existingPart, error: checkError } = await supabase
+        .from("movies")
+        .select("id")
+        .eq("parent_movie_id", addingPartToMovie.id)
+        .eq("part_number", newPartNumber)
+        .single()
+
+      if (checkError && checkError.code !== "PGRST116") { // PGRST116 = no rows returned
+        throw checkError
+      }
+
+      if (existingPart) {
+        toast({
+          title: "Part Already Exists",
+          description: `Part ${newPartNumber} of this movie already exists`,
+          variant: "destructive",
+        })
+        return
+      }
+
       const movieData = {
-        tmdb_id: selectedMovie.id,
-        title: isMultiPart ? `${selectedMovie.title} - Part ${partNumber}` : selectedMovie.title,
-        overview: selectedMovie.overview,
-        poster_path: selectedMovie.poster_path,
-        backdrop_path: selectedMovie.backdrop_path,
-        release_date: selectedMovie.release_date,
-        runtime: selectedMovie.runtime,
-        vote_average: selectedMovie.vote_average,
-        vote_count: selectedMovie.vote_count,
-        genres: selectedMovie.genres,
-        trailer_url: trailerUrl || null,
-        download_url: downloadUrl || null,
-        embed_url: embedUrl,
-        part_number: isMultiPart ? partNumber : 1,
-            parent_movie_id: isMultiPart && selectedParentMovie ? selectedParentMovie.id : null,
-        status: isScheduled ? "coming_soon" : "active",
-        scheduled_release: isScheduled && scheduledDate ? new Date(scheduledDate).toISOString() : null,
+        tmdb_id: addingPartToMovie.tmdb_id + newPartNumber, // Make unique by adding part number
+        title: `${addingPartToMovie.title.replace(/ - Part \d+$/, '')} - Part ${newPartNumber}`,
+        overview: addingPartToMovie.overview,
+        poster_path: addingPartToMovie.poster_path,
+        backdrop_path: addingPartToMovie.backdrop_path,
+        release_date: addingPartToMovie.release_date,
+        runtime: addingPartToMovie.runtime,
+        vote_average: addingPartToMovie.vote_average,
+        vote_count: addingPartToMovie.vote_count,
+        genres: addingPartToMovie.genres,
+        trailer_url: null,
+        download_url: partDownloadUrl || null,
+        embed_url: partEmbedUrl,
+        part_number: newPartNumber,
+        parent_movie_id: addingPartToMovie.id,
+        status: "active",
+        scheduled_release: null,
       }
 
       const { error } = await supabase.from("movies").insert([movieData])
@@ -257,8 +431,8 @@ export function MovieManager() {
       if (error) {
         if (error.code === "23505") {
           toast({
-            title: "Movie Already Exists",
-            description: "This movie is already in the database",
+            title: "Part Already Exists",
+            description: `Part ${newPartNumber} of this movie already exists`,
             variant: "destructive",
           })
         } else {
@@ -267,26 +441,18 @@ export function MovieManager() {
       } else {
         toast({
           title: "Success",
-          description: `Movie "${movieData.title}" added successfully`,
+          description: `Part ${newPartNumber} added successfully`,
         })
-        setSelectedMovie(null)
-        setEmbedUrl("")
-        setTrailerUrl("")
-        setDownloadUrl("")
-            setIsScheduled(false)
-            setScheduledDate("")
-            setIsMultiPart(false)
-            setPartNumber(1)
-            setParentMovieId("")
-            setParentMovieSearch("")
-            setSelectedParentMovie(null)
-            setParentMovieResults([])
-            loadExistingMovies()
+        setAddingPartToMovie(null)
+        setPartEmbedUrl("")
+        setPartDownloadUrl("")
+        setNewPartNumber(2)
+        loadExistingMovies()
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to add movie to database",
+        description: "Failed to add part to movie",
         variant: "destructive",
       })
     } finally {
@@ -445,17 +611,34 @@ export function MovieManager() {
                           type="number"
                           min="1"
                           value={partNumber}
-                          onChange={(e) => setPartNumber(parseInt(e.target.value) || 1)}
+                          onChange={(e) => {
+                            const newPartNumber = parseInt(e.target.value) || 1
+                            setPartNumber(newPartNumber)
+                            // Clear parent movie selection when switching to Part 1
+                            if (newPartNumber === 1) {
+                              setSelectedParentMovie(null)
+                              setParentMovieId("")
+                              setParentMovieSearch("")
+                              setParentMovieResults([])
+                            }
+                          }}
                         />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {partNumber === 1 ? "Part 1 is the main movie" : "Part 2+ requires parent movie"}
+                        </p>
                       </div>
                       <div>
-                        <Label htmlFor="parent-movie-search">Parent Movie (Optional)</Label>
+                        <Label htmlFor="parent-movie-search">
+                          Parent Movie {partNumber === 1 ? "(Not needed for Part 1)" : "(Required for Part 2+)"}
+                        </Label>
                         <div className="relative">
                           <Input
                             id="parent-movie-search"
-                            placeholder="Search for the main movie..."
+                            placeholder={partNumber === 1 ? "Not needed for Part 1" : "Search for the main movie..."}
                             value={parentMovieSearch}
+                            disabled={partNumber === 1}
                             onChange={(e) => {
+                              if (partNumber === 1) return
                               setParentMovieSearch(e.target.value)
                               if (e.target.value.trim()) {
                                 searchExistingMovies()
@@ -476,7 +659,7 @@ export function MovieManager() {
                                 >
                                   <div className="flex items-center gap-3">
                                     <img
-                                      src={getTMDBImageUrl(movie.poster_path, "w92") || "/placeholder.svg?height=92&width=62"}
+                                      src={getTMDBImageUrl(movie.poster_path || "", "w92") || "/placeholder.svg?height=92&width=62"}
                                       alt={movie.title}
                                       className="w-12 h-16 object-cover rounded"
                                     />
@@ -501,7 +684,7 @@ export function MovieManager() {
                           <div className="mt-2 p-3 bg-muted rounded-md">
                             <div className="flex items-center gap-3">
                               <img
-                                src={getTMDBImageUrl(selectedParentMovie.poster_path, "w92") || "/placeholder.svg?height=92&width=62"}
+                                src={getTMDBImageUrl(selectedParentMovie.poster_path || "", "w92") || "/placeholder.svg?height=92&width=62"}
                                 alt={selectedParentMovie.title}
                                 className="w-12 h-16 object-cover rounded"
                               />
@@ -589,7 +772,7 @@ export function MovieManager() {
                   <CardContent className="p-4">
                     <div className="flex gap-3">
                       <img
-                        src={getTMDBImageUrl(movie.poster_path, "w92") || "/placeholder.svg"}
+                        src={getTMDBImageUrl(movie.poster_path || "", "w92") || "/placeholder.svg"}
                         alt={movie.title}
                         className="w-16 h-24 object-cover rounded"
                       />
@@ -609,6 +792,14 @@ export function MovieManager() {
                             className="h-8 px-2"
                           >
                             <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setAddingPartToMovie(movie)}
+                            className="h-8 px-2"
+                          >
+                            <Plus className="h-3 w-3" />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -716,6 +907,64 @@ export function MovieManager() {
                   </div>
                 </div>
               </CardContent>
+            </Card>
+          )}
+
+          {/* Add Part to Existing Movie Dialog */}
+          {addingPartToMovie && (
+            <Card className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+              <Card className="w-full max-w-md mx-4">
+                <CardHeader>
+                  <CardTitle>Add Part to "{addingPartToMovie.title}"</CardTitle>
+                  <CardDescription>Add another part to this movie</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="part-number-input">Part Number</Label>
+                    <Input
+                      id="part-number-input"
+                      type="number"
+                      min="2"
+                      value={newPartNumber}
+                      onChange={(e) => setNewPartNumber(parseInt(e.target.value) || 2)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Next part number (minimum 2)
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="part-embed-url">Embed URL (Required)</Label>
+                    <Input
+                      id="part-embed-url"
+                      placeholder="https://hglink.to/e/..."
+                      value={partEmbedUrl}
+                      onChange={(e) => setPartEmbedUrl(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Embed URL for the new part</p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="part-download-url">Download URL (Optional)</Label>
+                    <Input
+                      id="part-download-url"
+                      placeholder="https://example.com/download/..."
+                      value={partDownloadUrl}
+                      onChange={(e) => setPartDownloadUrl(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Direct download link for this part</p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button onClick={handleAddPartToMovie} disabled={loading} className="flex-1">
+                      {loading ? "Adding..." : "Add Part"}
+                    </Button>
+                    <Button onClick={() => setAddingPartToMovie(null)} variant="outline">
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </Card>
           )}
         </TabsContent>

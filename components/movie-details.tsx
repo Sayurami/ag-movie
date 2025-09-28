@@ -27,12 +27,20 @@ export function MovieDetails({ movie }: MovieDetailsProps) {
     const loadMovieParts = async () => {
       const supabase = createClient()
       try {
-        // Check if this movie has parts
-        const { data: parts, error } = await supabase
-          .from("movies")
-          .select("*")
-          .or(`parent_movie_id.eq.${movie.id},id.eq.${movie.parent_movie_id}`)
-          .order("part_number", { ascending: true })
+        let query = supabase.from("movies").select("*")
+        
+        if (movie.parent_movie_id) {
+          // This is a part of another movie, get all parts including parent
+          query = query.or(`parent_movie_id.eq.${movie.parent_movie_id},id.eq.${movie.parent_movie_id}`)
+        } else if (movie.part_number && movie.part_number === 1) {
+          // This is Part 1, get all its parts
+          query = query.or(`parent_movie_id.eq.${movie.id},id.eq.${movie.id}`)
+        } else {
+          // This is a standalone movie, no parts to load
+          return
+        }
+        
+        const { data: parts, error } = await query.order("part_number", { ascending: true })
         
         if (error) throw error
         setMovieParts(parts || [])
@@ -41,7 +49,8 @@ export function MovieDetails({ movie }: MovieDetailsProps) {
       }
     }
 
-    if (movie.parent_movie_id || movie.part_number) {
+    // Load parts for multi-part movies
+    if (movie.parent_movie_id || (movie.part_number && movie.part_number >= 1)) {
       loadMovieParts()
     }
   }, [movie.id, movie.parent_movie_id, movie.part_number])
@@ -179,7 +188,9 @@ export function MovieDetails({ movie }: MovieDetailsProps) {
           {movieParts.length > 1 && (
             <Card>
               <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4">Movie Parts</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-4">
+                  Movie Parts ({movieParts.length} parts)
+                </h3>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {movieParts.map((part) => (
                     <div
@@ -196,7 +207,15 @@ export function MovieDetails({ movie }: MovieDetailsProps) {
                         />
                         <div className="flex-1 min-w-0">
                           <h4 className="font-semibold text-sm truncate">{part.title}</h4>
-                          <p className="text-xs text-muted-foreground">Part {part.part_number}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Part {part.part_number}
+                            {part.id === movie.id && " (Current)"}
+                          </p>
+                          {part.runtime && (
+                            <p className="text-xs text-muted-foreground">
+                              {part.runtime} min
+                            </p>
+                          )}
                           <div className="flex gap-2 mt-2">
                             <Button asChild size="sm" variant="outline">
                               <Link href={`/movie/${part.id}`}>

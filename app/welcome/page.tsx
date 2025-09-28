@@ -34,6 +34,7 @@ export default function WelcomePage() {
           .from("movies")
           .select("*")
           .eq("status", "active")
+          .or("part_number.is.null,part_number.eq.1") // Only show standalone movies or Part 1
           .order("vote_average", { ascending: false })
           .limit(10),
         supabase

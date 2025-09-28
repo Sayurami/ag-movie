@@ -76,7 +76,7 @@ export function ComingSoonManager() {
 
     try {
       const [moviesResult, tvShowsResult] = await Promise.all([
-        supabase.from("movies").select("*").eq("status", "coming_soon").order("scheduled_release", { ascending: true }),
+        supabase.from("movies").select("*").eq("status", "coming_soon").or("part_number.is.null,part_number.eq.1").order("scheduled_release", { ascending: true }), // Only show standalone movies or Part 1
         supabase
           .from("tv_shows")
           .select("*")
