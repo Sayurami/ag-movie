@@ -4,7 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { SearchModal } from "@/components/search-modal"
-import { Search, Menu, X } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import { Search, Menu, X, ChevronDown } from "lucide-react"
 
 export function Navigation() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -17,6 +18,19 @@ export function Navigation() {
     { href: "/categories", label: "Categories" },
     { href: "/coming-soon", label: "Coming Soon" },
     { href: "/watchlist", label: "My List" },
+  ]
+
+  const moreItems = [
+    { href: "/about", label: "About Us" },
+    { href: "/team", label: "Our Team" },
+    { href: "/help", label: "Help Center" },
+    { href: "/faq", label: "FAQ" },
+    { href: "/contact", label: "Contact Us" },
+  ]
+
+  const legalItems = [
+    { href: "/privacy", label: "Privacy Policy" },
+    { href: "/terms", label: "Terms of Service" },
   ]
 
   return (
@@ -43,6 +57,28 @@ export function Navigation() {
                   {item.label}
                 </Link>
               ))}
+              
+              {/* More Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+                    More <ChevronDown className="h-4 w-4 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {moreItems.map((item) => (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link href={item.href}>{item.label}</Link>
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  {legalItems.map((item) => (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link href={item.href}>{item.label}</Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Search and Mobile Menu */}
@@ -82,6 +118,36 @@ export function Navigation() {
                     {item.label}
                   </Link>
                 ))}
+                
+                {/* Mobile More Items */}
+                <div className="border-t border-border pt-4 mt-4">
+                  <div className="text-sm font-medium text-muted-foreground px-2 py-1 mb-2">More</div>
+                  {moreItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="text-muted-foreground hover:text-foreground transition-colors px-2 py-1 block"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+                
+                {/* Mobile Legal Items */}
+                <div className="border-t border-border pt-4 mt-4">
+                  <div className="text-sm font-medium text-muted-foreground px-2 py-1 mb-2">Legal</div>
+                  {legalItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="text-muted-foreground hover:text-foreground transition-colors px-2 py-1 block"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
               </div>
             </div>
           )}
