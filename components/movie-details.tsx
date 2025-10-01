@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { WatchlistButton } from "@/components/watchlist-button"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { Movie } from "@/lib/types"
-import { Share, Heart, Calendar, Clock, Star, ExternalLink, Download, Play } from "lucide-react"
+import { Share, Heart, Calendar, Clock, Star, ExternalLink, Download, Play, Mic } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
@@ -134,6 +134,17 @@ export function MovieDetails({ movie }: MovieDetailsProps) {
                     {genre.name}
                   </Badge>
                 ))}
+              </div>
+            )}
+
+            {/* Narrator */}
+            {movie.narrator && (
+              <div className="flex items-center gap-2 mb-6">
+                <Mic className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Narrated by:</span>
+                <Badge variant="outline" className="text-sm">
+                  {movie.narrator}
+                </Badge>
               </div>
             )}
           </div>

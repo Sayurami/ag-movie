@@ -22,6 +22,7 @@ export function MovieManager() {
   const [embedUrl, setEmbedUrl] = useState("")
   const [trailerUrl, setTrailerUrl] = useState("")
   const [downloadUrl, setDownloadUrl] = useState("")
+  const [narrator, setNarrator] = useState("")
   const [isScheduled, setIsScheduled] = useState(false)
   const [scheduledDate, setScheduledDate] = useState("")
   const [isMultiPart, setIsMultiPart] = useState(false)
@@ -39,6 +40,7 @@ export function MovieManager() {
   const [editEmbedUrl, setEditEmbedUrl] = useState("")
   const [editTrailerUrl, setEditTrailerUrl] = useState("")
   const [editDownloadUrl, setEditDownloadUrl] = useState("")
+  const [editNarrator, setEditNarrator] = useState("")
   const [editIsScheduled, setEditIsScheduled] = useState(false)
   const [editScheduledDate, setEditScheduledDate] = useState("")
   
@@ -134,6 +136,7 @@ export function MovieManager() {
     setEditEmbedUrl(movie.embed_url)
     setEditTrailerUrl(movie.trailer_url || "")
     setEditDownloadUrl(movie.download_url || "")
+    setEditNarrator(movie.narrator || "")
     setEditIsScheduled(movie.status === "coming_soon")
     setEditScheduledDate(movie.scheduled_release ? new Date(movie.scheduled_release).toISOString().slice(0, 16) : "")
   }
@@ -150,6 +153,7 @@ export function MovieManager() {
           embed_url: editEmbedUrl,
           trailer_url: editTrailerUrl || null,
           download_url: editDownloadUrl || null,
+          narrator: editNarrator || null,
           status: editIsScheduled ? "coming_soon" : "active",
           scheduled_release: editIsScheduled && editScheduledDate ? new Date(editScheduledDate).toISOString() : null,
           updated_at: new Date().toISOString(),
@@ -275,6 +279,7 @@ export function MovieManager() {
           genres: selectedParentMovie.genres,
           trailer_url: trailerUrl || null,
           download_url: downloadUrl || null,
+          narrator: narrator || null,
           embed_url: embedUrl,
           part_number: partNumber,
           parent_movie_id: selectedParentMovie.id,
@@ -317,6 +322,7 @@ export function MovieManager() {
           genres: selectedMovie.genres,
           trailer_url: trailerUrl || null,
           download_url: downloadUrl || null,
+          narrator: narrator || null,
           embed_url: embedUrl,
           part_number: isMultiPart ? partNumber : 1,
           parent_movie_id: null, // Part 1 is the parent
@@ -361,6 +367,7 @@ export function MovieManager() {
     setEmbedUrl("")
     setTrailerUrl("")
     setDownloadUrl("")
+    setNarrator("")
     setIsScheduled(false)
     setScheduledDate("")
     setIsMultiPart(false)
@@ -589,6 +596,17 @@ export function MovieManager() {
                       onChange={(e) => setDownloadUrl(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground mt-1">Direct download link for offline viewing</p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="narrator">Narrator (Optional)</Label>
+                    <Input
+                      id="narrator"
+                      placeholder="Narrator name"
+                      value={narrator}
+                      onChange={(e) => setNarrator(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Name of the person who narrated this movie</p>
                   </div>
 
                   <div className="flex items-center space-x-2">
@@ -872,6 +890,17 @@ export function MovieManager() {
                       onChange={(e) => setEditDownloadUrl(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground mt-1">Direct download link for offline viewing</p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-narrator">Narrator (Optional)</Label>
+                    <Input
+                      id="edit-narrator"
+                      placeholder="Narrator name"
+                      value={editNarrator}
+                      onChange={(e) => setEditNarrator(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Name of the person who narrated this movie</p>
                   </div>
 
                   <div className="flex items-center space-x-2">

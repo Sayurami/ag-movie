@@ -4,11 +4,13 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { Movie, TVShow } from "@/lib/types"
-import { Search, Film, Tv } from "lucide-react"
+import { Search, Film, Tv, ExternalLink } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 interface SearchModalProps {
   isOpen: boolean
@@ -19,6 +21,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<(Movie | TVShow)[]>([])
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     if (!query.trim()) {
@@ -65,6 +68,20 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     onClose()
   }
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && query.trim()) {
+      handleClose()
+      router.push(`/search?q=${encodeURIComponent(query.trim())}`)
+    }
+  }
+
+  const handleViewAllResults = () => {
+    if (query.trim()) {
+      handleClose()
+      router.push(`/search?q=${encodeURIComponent(query.trim())}`)
+    }
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
@@ -80,6 +97,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
             placeholder="Search for movies and TV shows..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyPress={handleKeyPress}
             className="text-lg"
             autoFocus
           />
@@ -88,18 +106,33 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
             {loading && <div className="text-center py-8 text-muted-foreground">Searching...</div>}
 
             {!loading && query && results.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">No results found for "{query}"</div>
+              <div className="text-center py-8">
+                <div className="text-muted-foreground mb-4">No results found for "{query}"</div>
+                <Button onClick={handleViewAllResults} variant="outline">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View All Results & Request
+                </Button>
+              </div>
+            )}
+
+            {results.length > 0 && (
+              <div className="mb-4">
+                <Button onClick={handleViewAllResults} variant="outline" className="w-full">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View All Results for "{query}"
+                </Button>
+              </div>
             )}
 
             {results.map((item) => (
               <Link
                 key={item.id}
-                href={item.type === "movie" ? `/movie/${item.id}` : `/tv/${item.id}`}
+                href={"title" in item ? `/movie/${item.id}` : `/tv/${item.id}`}
                 onClick={handleClose}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors"
               >
                 <img
-                  src={getTMDBImageUrl(item.poster_path, "w92") || "/placeholder.svg"}
+                  src={getTMDBImageUrl(item.poster_path || "", "w92") || "/placeholder.svg"}
                   alt={"title" in item ? item.title : item.name}
                   className="w-12 h-18 object-cover rounded"
                 />
@@ -107,8 +140,8 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                   <h3 className="font-semibold truncate">{"title" in item ? item.title : item.name}</h3>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline" className="text-xs">
-                      {item.type === "movie" ? <Film className="h-3 w-3 mr-1" /> : <Tv className="h-3 w-3 mr-1" />}
-                      {item.type === "movie" ? "Movie" : "TV Show"}
+                      {"title" in item ? <Film className="h-3 w-3 mr-1" /> : <Tv className="h-3 w-3 mr-1" />}
+                      {"title" in item ? "Movie" : "TV Show"}
                     </Badge>
                     {item.vote_average && (
                       <Badge variant="secondary" className="text-xs">

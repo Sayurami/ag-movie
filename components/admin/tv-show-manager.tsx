@@ -20,6 +20,7 @@ export function TVShowManager() {
   const [selectedShow, setSelectedShow] = useState<TMDBTVShow | null>(null)
   const [trailerUrl, setTrailerUrl] = useState("")
   const [downloadUrl, setDownloadUrl] = useState("")
+  const [narrator, setNarrator] = useState("")
   const [isScheduled, setIsScheduled] = useState(false)
   const [scheduledDate, setScheduledDate] = useState("")
   const [loading, setLoading] = useState(false)
@@ -30,6 +31,7 @@ export function TVShowManager() {
   const [editingShow, setEditingShow] = useState<TVShow | null>(null)
   const [editTrailerUrl, setEditTrailerUrl] = useState("")
   const [editDownloadUrl, setEditDownloadUrl] = useState("")
+  const [editNarrator, setEditNarrator] = useState("")
   const [editIsScheduled, setEditIsScheduled] = useState(false)
   const [editScheduledDate, setEditScheduledDate] = useState("")
 
@@ -98,6 +100,7 @@ export function TVShowManager() {
     setEditingShow(show)
     setEditTrailerUrl(show.trailer_url || "")
     setEditDownloadUrl(show.download_url || "")
+    setEditNarrator(show.narrator || "")
     setEditIsScheduled(show.status === "coming_soon")
     setEditScheduledDate(show.scheduled_release ? new Date(show.scheduled_release).toISOString().slice(0, 16) : "")
   }
@@ -113,6 +116,7 @@ export function TVShowManager() {
         .update({
           trailer_url: editTrailerUrl || null,
           download_url: editDownloadUrl || null,
+          narrator: editNarrator || null,
           status: editIsScheduled ? "coming_soon" : "active",
           scheduled_release: editIsScheduled && editScheduledDate ? new Date(editScheduledDate).toISOString() : null,
           updated_at: new Date().toISOString(),
@@ -358,6 +362,7 @@ export function TVShowManager() {
         genres: selectedShow.genres,
         trailer_url: trailerUrl || null,
         download_url: downloadUrl || null,
+        narrator: narrator || null,
         status: isScheduled ? "coming_soon" : "active",
         scheduled_release: isScheduled && scheduledDate ? new Date(scheduledDate).toISOString() : null,
       }
@@ -518,6 +523,17 @@ export function TVShowManager() {
                     <p className="text-xs text-muted-foreground mt-1">Direct download link for offline viewing</p>
                   </div>
 
+                  <div>
+                    <Label htmlFor="narrator">Narrator (Optional)</Label>
+                    <Input
+                      id="narrator"
+                      placeholder="Narrator name"
+                      value={narrator}
+                      onChange={(e) => setNarrator(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Name of the person who narrated this TV show</p>
+                  </div>
+
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -653,6 +669,17 @@ export function TVShowManager() {
                       onChange={(e) => setEditDownloadUrl(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground mt-1">Direct download link for offline viewing</p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-narrator">Narrator (Optional)</Label>
+                    <Input
+                      id="edit-narrator"
+                      placeholder="Narrator name"
+                      value={editNarrator}
+                      onChange={(e) => setEditNarrator(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Name of the person who narrated this TV show</p>
                   </div>
 
                   <div className="flex items-center space-x-2">

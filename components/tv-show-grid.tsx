@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { TVShow } from "@/lib/types"
-import { Play, Plus } from "lucide-react"
+import { Play, Plus, Mic } from "lucide-react"
 import Link from "next/link"
 import { TVShowGridSkeleton } from "@/components/skeletons/tv-show-grid-skeleton"
 
@@ -33,7 +33,7 @@ export function TVShowGrid({ tvShows, loading }: TVShowGridProps) {
         <Link key={show.id} href={`/tv/${show.id}`} className="group cursor-pointer">
           <div className="relative overflow-hidden rounded-lg bg-card">
             <img
-              src={getTMDBImageUrl(show.poster_path) || "/placeholder.svg?height=360&width=240"}
+              src={getTMDBImageUrl(show.poster_path || "") || "/placeholder.svg?height=360&width=240"}
               alt={show.name}
               className="w-full h-48 sm:h-64 md:h-80 object-cover transition-transform group-hover:scale-105"
             />
@@ -55,6 +55,14 @@ export function TVShowGrid({ tvShows, loading }: TVShowGridProps) {
             {/* Rating Badge */}
             {show.vote_average && (
               <Badge className="absolute top-2 right-2 text-xs">★ {show.vote_average.toFixed(1)}</Badge>
+            )}
+
+            {/* Narrator Badge */}
+            {show.narrator && (
+              <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                <Mic className="h-3 w-3" />
+                <span className="truncate">{show.narrator}</span>
+              </div>
             )}
           </div>
 
