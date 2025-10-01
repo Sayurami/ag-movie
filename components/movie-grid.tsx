@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { Movie } from "@/lib/types"
-import { Play, Plus } from "lucide-react"
+import { Play, Plus, Mic } from "lucide-react"
 import Link from "next/link"
 import { MovieGridSkeleton } from "@/components/skeletons/movie-grid-skeleton"
 
@@ -33,7 +33,7 @@ export function MovieGrid({ movies, loading }: MovieGridProps) {
         <Link key={movie.id} href={`/movie/${movie.id}`} className="group cursor-pointer">
           <div className="relative overflow-hidden rounded-lg bg-card">
             <img
-              src={getTMDBImageUrl(movie.poster_path) || "/placeholder.svg?height=360&width=240"}
+              src={getTMDBImageUrl(movie.poster_path || "") || "/placeholder.svg?height=360&width=240"}
               alt={movie.title}
               className="w-full h-48 sm:h-64 md:h-80 object-cover transition-transform group-hover:scale-105"
             />
@@ -55,6 +55,14 @@ export function MovieGrid({ movies, loading }: MovieGridProps) {
             {/* Rating Badge */}
             {movie.vote_average && (
               <Badge className="absolute top-2 right-2 text-xs">★ {movie.vote_average.toFixed(1)}</Badge>
+            )}
+
+            {/* Narrator Badge */}
+            {movie.narrator && (
+              <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                <Mic className="h-3 w-3" />
+                <span className="truncate">{movie.narrator}</span>
+              </div>
             )}
           </div>
 

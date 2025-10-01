@@ -2,10 +2,12 @@
 
 import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
 import { MovieGrid } from "@/components/movie-grid"
 import { TVShowGrid } from "@/components/tv-show-grid"
 import type { Movie, TVShow } from "@/lib/types"
-import { Film, Tv } from "lucide-react"
+import { Film, Tv, Plus } from "lucide-react"
+import Link from "next/link"
 
 interface SearchResultsProps {
   movies: Movie[]
@@ -23,17 +25,46 @@ export function SearchResults({ movies, tvShows, query, type }: SearchResultsPro
     return (
       <div className="text-center py-12">
         <h3 className="text-xl font-semibold text-foreground mb-2">No Results Found</h3>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mb-6">
           We couldn't find any {type === "all" ? "content" : type === "movies" ? "movies" : "TV shows"} matching "
           {query}"
         </p>
-        <p className="text-muted-foreground mt-2">Try different keywords or browse our categories</p>
+        <p className="text-muted-foreground mb-6">Try different keywords or browse our categories</p>
+        
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Button asChild variant="outline">
+            <Link href="/categories">
+              Browse Categories
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href={`/request-movie?title=${encodeURIComponent(query)}&type=${type === "movies" ? "movie" : "tv_show"}`}>
+              <Plus className="h-4 w-4 mr-2" />
+              Request "{query}"
+            </Link>
+          </Button>
+        </div>
       </div>
     )
   }
 
   if (type !== "all") {
-    return <div>{type === "movies" ? <MovieGrid movies={movies} /> : <TVShowGrid tvShows={tvShows} />}</div>
+    return (
+      <div>
+        <div className="mb-6 text-center">
+          <p className="text-muted-foreground mb-4">
+            Can't find what you're looking for? Request it and we'll try to add it!
+          </p>
+          <Button asChild variant="outline">
+            <Link href={`/request-movie?title=${encodeURIComponent(query)}&type=${type === "movies" ? "movie" : "tv_show"}`}>
+              <Plus className="h-4 w-4 mr-2" />
+              Request "{query}"
+            </Link>
+          </Button>
+        </div>
+        {type === "movies" ? <MovieGrid movies={movies} /> : <TVShowGrid tvShows={tvShows} />}
+      </div>
+    )
   }
 
   return (
@@ -52,6 +83,18 @@ export function SearchResults({ movies, tvShows, query, type }: SearchResultsPro
 
       <TabsContent value="all" className="mt-8">
         <div className="space-y-12">
+          <div className="text-center mb-8">
+            <p className="text-muted-foreground mb-4">
+              Can't find what you're looking for? Request it and we'll try to add it!
+            </p>
+            <Button asChild variant="outline">
+              <Link href={`/request-movie?title=${encodeURIComponent(query)}&type=movie`}>
+                <Plus className="h-4 w-4 mr-2" />
+                Request "{query}"
+              </Link>
+            </Button>
+          </div>
+          
           {movies.length > 0 && (
             <div>
               <h2 className="text-2xl font-bold text-foreground mb-6">Movies</h2>

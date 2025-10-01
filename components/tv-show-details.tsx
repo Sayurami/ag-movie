@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { WatchlistButton } from "@/components/watchlist-button"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { TVShow, Episode } from "@/lib/types"
-import { Share, Heart, Calendar, Tv, Star, ExternalLink, Download, Play } from "lucide-react"
+import { Share, Heart, Calendar, Tv, Star, ExternalLink, Download, Play, Mic } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
@@ -126,6 +126,17 @@ export function TVShowDetails({ tvShow }: TVShowDetailsProps) {
                       {genre.name}
                     </Badge>
                   ))}
+                </div>
+              )}
+
+              {/* Narrator */}
+              {tvShow.narrator && (
+                <div className="flex items-center gap-2 mb-4">
+                  <Mic className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Narrated by:</span>
+                  <Badge variant="outline" className="text-sm">
+                    {tvShow.narrator}
+                  </Badge>
                 </div>
               )}
 

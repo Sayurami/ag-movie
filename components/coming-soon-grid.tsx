@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { Movie, TVShow } from "@/lib/types"
-import { Calendar, Clock, Film, Tv, Bell, ExternalLink } from "lucide-react"
+import { Calendar, Clock, Film, Tv, Bell, ExternalLink, Mic } from "lucide-react"
 import { useState } from "react"
 
 interface ComingSoonGridProps {
@@ -124,6 +124,17 @@ export function ComingSoonGrid({ items }: ComingSoonGridProps) {
                               {genre.name}
                             </Badge>
                           ))}
+                        </div>
+                      )}
+
+                      {/* Narrator */}
+                      {item.narrator && (
+                        <div className="flex items-center gap-2 mb-4">
+                          <Mic className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Narrated by:</span>
+                          <Badge variant="outline" className="text-sm">
+                            {item.narrator}
+                          </Badge>
                         </div>
                       )}
 

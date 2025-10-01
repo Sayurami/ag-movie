@@ -1,6 +1,7 @@
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { SearchResults } from "@/components/search-results"
+import { SearchBar } from "@/components/search-bar"
 import { createClient } from "@/lib/supabase/server"
 
 interface SearchPageProps {
@@ -21,7 +22,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <Navigation />
         <main className="pt-16">
           <div className="container mx-auto px-4 py-8">
-            <h1 className="text-3xl font-bold text-foreground mb-8">Search</h1>
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-foreground mb-2">Search</h1>
+              <p className="text-muted-foreground mb-6">Find movies and TV shows</p>
+              <SearchBar />
+            </div>
             <div className="text-center py-12">
               <h3 className="text-xl font-semibold text-foreground mb-2">Start Your Search</h3>
               <p className="text-muted-foreground">Enter a movie or TV show title to get started</p>
@@ -71,7 +76,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       <main className="pt-16">
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Search Results</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Search</h1>
+            <p className="text-muted-foreground mb-6">Find movies and TV shows</p>
+            <SearchBar initialQuery={query} />
+          </div>
+
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Search Results</h2>
             <p className="text-muted-foreground">
               {totalResults} result{totalResults !== 1 ? "s" : ""} for "{query}"
             </p>

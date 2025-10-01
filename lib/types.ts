@@ -15,6 +15,7 @@ export interface Movie {
   download_url?: string
   part_number?: number
   parent_movie_id?: string
+  narrator?: string
   status: "active" | "inactive" | "coming_soon"
   scheduled_release?: string
   created_at: string
@@ -37,6 +38,7 @@ export interface TVShow {
   genres: Genre[]
   trailer_url?: string
   download_url?: string
+  narrator?: string
   status: "active" | "inactive" | "coming_soon"
   scheduled_release?: string
   created_at: string
@@ -80,6 +82,20 @@ export interface Genre {
   tmdb_id: number
   name: string
   created_at: string
+}
+
+export interface MovieRequest {
+  id: string
+  title: string
+  type: "movie" | "tv_show"
+  year?: number
+  description?: string
+  requester_email: string
+  requester_phone?: string
+  status: "pending" | "in_progress" | "completed" | "rejected"
+  admin_notes?: string
+  created_at: string
+  updated_at: string
 }
 
 export interface TMDBMovie {

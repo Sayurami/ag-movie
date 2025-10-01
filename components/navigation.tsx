@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { SearchModal } from "@/components/search-modal"
 import { PWAInstallGuide } from "@/components/pwa-install-guide"
-import { Search, Home, Clock, Bookmark, Grid3X3, Download, Film, Tv } from "lucide-react"
+import { Search, Home, Clock, Bookmark, Grid3X3, Download, Film, Tv, Plus } from "lucide-react"
 
 export function Navigation() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -51,6 +51,7 @@ export function Navigation() {
     { href: "/tv-shows", label: "TV Shows" },
     { href: "/categories", label: "Categories" },
     { href: "/coming-soon", label: "Coming Soon" },
+    { href: "/request-movie", label: "Request Content" },
     { href: "/watchlist", label: "My List" },
   ]
 
@@ -59,6 +60,7 @@ export function Navigation() {
     { href: "/movies", label: "Movies", icon: Film },
     { href: "/tv-shows", label: "Shows", icon: Tv },
     { href: "/coming-soon", label: "Coming", icon: Clock },
+    { href: "/request-movie", label: "Request", icon: Plus },
     { href: "/watchlist", label: "My List", icon: Bookmark },
   ]
 

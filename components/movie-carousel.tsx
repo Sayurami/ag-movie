@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { WatchlistButton } from "@/components/watchlist-button"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { Movie } from "@/lib/types"
-import { ChevronLeft, ChevronRight, Play } from "lucide-react"
+import { ChevronLeft, ChevronRight, Play, Mic } from "lucide-react"
 import Link from "next/link"
 import { CarouselSkeleton } from "@/components/skeletons/carousel-skeleton"
 
@@ -89,7 +89,7 @@ export function MovieCarousel({ title, movies, loading }: MovieCarouselProps) {
               <Link key={movie.id} href={`/movie/${movie.id}`} className="flex-none w-48 group/item cursor-pointer">
                 <div className="relative overflow-hidden rounded-lg bg-card">
                   <img
-                    src={getTMDBImageUrl(movie.poster_path) || "/placeholder.svg?height=288&width=192"}
+                    src={getTMDBImageUrl(movie.poster_path || "") || "/placeholder.svg?height=288&width=192"}
                     alt={movie.title}
                     className="w-full h-72 object-cover transition-transform group-hover/item:scale-105"
                   />
@@ -106,13 +106,12 @@ export function MovieCarousel({ title, movies, loading }: MovieCarouselProps) {
                         id={movie.id.toString()}
                         type="movie"
                         title={movie.title}
-                        poster_path={movie.poster_path}
+                        poster_path={movie.poster_path || ""}
                         vote_average={movie.vote_average || 0}
-                        release_date={movie.release_date}
-                        variant="secondary"
+                        release_date={movie.release_date || ""}
+                        variant="outline"
                         size="sm"
                         showText={false}
-                        onClick={(e) => e.stopPropagation()}
                       />
                     </div>
                   </div>
@@ -120,6 +119,14 @@ export function MovieCarousel({ title, movies, loading }: MovieCarouselProps) {
                   {/* Rating Badge */}
                   {movie.vote_average && (
                     <Badge className="absolute top-2 right-2 text-xs">★ {movie.vote_average.toFixed(1)}</Badge>
+                  )}
+
+                  {/* Narrator Badge */}
+                  {movie.narrator && (
+                    <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                      <Mic className="h-3 w-3" />
+                      <span className="truncate">{movie.narrator}</span>
+                    </div>
                   )}
                 </div>
 
