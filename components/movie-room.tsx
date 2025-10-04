@@ -3,9 +3,13 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { SynchronizedVideoPlayer } from "@/components/synchronized-video-player"
 import { RoomChat } from "@/components/room-chat"
 import { useRoomRealtime } from "@/hooks/use-room-realtime"
+import { useRoomSession } from "@/hooks/use-room-session"
 import { useToast } from "@/hooks/use-toast"
 import { 
   Users, 
@@ -13,7 +17,8 @@ import {
   Share2,
   Crown,
   Wifi,
-  WifiOff
+  WifiOff,
+  AlertCircle
 } from "lucide-react"
 import type { MovieRoom, RoomParticipant, RoomMessage } from "@/lib/types"
 
@@ -26,10 +31,16 @@ interface MovieRoomProps {
   messages: RoomMessage[]
 }
 
+interface ExtendedMovieRoom extends MovieRoom {
+  movies?: any
+  episodes?: any
+}
+
 export function MovieRoom({ room, participants: initialParticipants, messages: initialMessages }: MovieRoomProps) {
-  const [participantId] = useState(() => `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
-  const [participantName, setParticipantName] = useState("")
-  const [showNameInput, setShowNameInput] = useState(true)
+  const { session, isLoading: sessionLoading, saveSession, isLoggedIn } = useRoomSession(room.id)
+  const [participantId] = useState(() => session?.participantId || `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
+  const [participantName, setParticipantName] = useState(session?.participantName || "")
+  const [showNameInput, setShowNameInput] = useState(!isLoggedIn)
   const { toast } = useToast()
 
   // Use real-time hook for live updates
@@ -49,7 +60,7 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
     }
   })
 
-  const currentRoom = liveRoom || room
+  const currentRoom = (liveRoom || room) as ExtendedMovieRoom
   const isHost = participants.find(p => p.participant_id === participantId)?.is_host || false
 
   const content = currentRoom.movies || currentRoom.episodes
@@ -74,8 +85,8 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
       })
 
       if (response.ok) {
+        saveSession(participantId, participantName)
         setShowNameInput(false)
-        setIsHost(participants.length === 0)
         toast({
           title: "Joined Room!",
           description: "You've successfully joined the watch party.",
@@ -150,22 +161,41 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
     }
   }
 
+  // Show loading state while checking session
+  if (sessionLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-3">Loading room...</span>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Show name input if not logged in
   if (showNameInput) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-md mx-auto">
           <CardHeader>
-            <CardTitle>Join Watch Party</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Join Watch Party
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="participant-name">Your Name</label>
+              <Label htmlFor="participant-name">Your Name</Label>
               <Input
                 id="participant-name"
                 placeholder="Enter your name"
                 value={participantName}
                 onChange={(e) => setParticipantName(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && joinRoom()}
+                autoFocus
               />
             </div>
             <Button 
@@ -175,6 +205,23 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
             >
               Join Room
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Show error if no content
+  if (!content || !embedUrl) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="flex flex-col items-center justify-center py-8">
+            <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Content Not Available</h3>
+            <p className="text-muted-foreground text-center">
+              The movie or episode for this room is not available. Please contact the room creator.
+            </p>
           </CardContent>
         </Card>
       </div>

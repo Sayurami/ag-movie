@@ -33,9 +33,17 @@ export function RoomChat({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive (only if user is near bottom)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const scrollContainer = messagesEndRef.current?.closest('[data-radix-scroll-area-viewport]')
+    if (scrollContainer) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+      
+      if (isNearBottom) {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }
+    }
   }, [messages])
 
   // Focus input when component mounts
@@ -141,23 +149,24 @@ export function RoomChat({
                 <p className="text-xs">Start the conversation!</p>
               </div>
             ) : (
-              messages.map((message) => {
+              messages.map((message, index) => {
                 const participant = getParticipantInfo(message.participant_id)
                 const isOwn = isOwnMessage(message)
+                const prevMessage = index > 0 ? messages[index - 1] : null
+                const isConsecutive = prevMessage && 
+                  prevMessage.participant_id === message.participant_id &&
+                  (new Date(message.timestamp).getTime() - new Date(prevMessage.timestamp).getTime()) < 60000 // 1 minute
                 
                 return (
-                  <div
-                    key={message.id}
-                    className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}
-                  >
-                    <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarFallback className={`text-xs ${isOwn ? 'bg-gradient-to-r from-green-500 to-blue-500' : 'bg-gradient-to-r from-blue-500 to-purple-500'} text-white`}>
-                        {getInitials(message.participant_name || 'U')}
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div className={`flex flex-col max-w-[70%] ${isOwn ? 'items-end' : 'items-start'}`}>
-                      <div className={`flex items-center gap-2 mb-1 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <div key={message.id} className="space-y-1">
+                    {/* Show participant info only if not consecutive or first message */}
+                    {!isConsecutive && (
+                      <div className="flex items-center gap-2 mt-3 mb-1">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className={`text-xs ${isOwn ? 'bg-gradient-to-r from-green-500 to-blue-500' : 'bg-gradient-to-r from-blue-500 to-purple-500'} text-white`}>
+                            {getInitials(message.participant_name || 'U')}
+                          </AvatarFallback>
+                        </Avatar>
                         <span className="text-xs font-medium text-foreground">
                           {message.participant_name || 'Anonymous'}
                         </span>
@@ -165,13 +174,16 @@ export function RoomChat({
                           {formatMessageTime(message.timestamp)}
                         </span>
                       </div>
-                      
+                    )}
+                    
+                    {/* Message bubble */}
+                    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                       <div
-                        className={`px-3 py-2 rounded-2xl text-sm break-words ${
+                        className={`px-3 py-2 rounded-2xl text-sm break-words max-w-[70%] ${
                           isOwn
                             ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white'
                             : 'bg-muted text-foreground'
-                        }`}
+                        } ${isConsecutive ? 'ml-8' : ''}`}
                       >
                         <p className="whitespace-pre-wrap">{message.message}</p>
                       </div>

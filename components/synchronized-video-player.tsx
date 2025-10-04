@@ -63,8 +63,7 @@ export function SynchronizedVideoPlayer({
     
     // Set up message listener for iframe communication
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== new URL(embedUrl).origin) return
-
+      // Accept messages from any origin for embedded videos
       if (event.data.type === 'PLAYBACK_UPDATE' && isHost) {
         const { currentTime: time, isPlaying: playing } = event.data
         setCurrentTime(time)

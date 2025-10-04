@@ -8,6 +8,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { room_id, participant_id, participant_name } = body
 
+    console.log('Room participants API called with:', { room_id, participant_id, participant_name })
+
     if (!room_id || !participant_id) {
       return NextResponse.json(
         { error: "Room ID and participant ID are required" },
@@ -24,6 +26,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (roomError || !room) {
+      console.error('Room fetch error:', roomError)
       return NextResponse.json(
         { error: "Room not found or inactive" },
         { status: 404 }

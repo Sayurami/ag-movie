@@ -35,6 +35,27 @@ export default async function RoomPage({ params }: RoomPageProps) {
     .single()
 
   if (error || !room) {
+    console.error('Room fetch error:', error)
+    console.error('Room code searched:', code.toUpperCase())
+    notFound()
+  }
+
+  console.log('Room data fetched:', {
+    id: room.id,
+    room_code: room.room_code,
+    movie_id: room.movie_id,
+    episode_id: room.episode_id,
+    has_movie: !!room.movies,
+    has_episode: !!room.episodes,
+    movie_title: room.movies?.title,
+    episode_name: room.episodes?.name
+  })
+
+  // Ensure room has the necessary data
+  if (!room.movies && !room.episodes) {
+    console.error('Room has no associated content')
+    console.error('Room movie_id:', room.movie_id)
+    console.error('Room episode_id:', room.episode_id)
     notFound()
   }
 
