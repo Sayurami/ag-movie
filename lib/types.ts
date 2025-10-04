@@ -125,3 +125,40 @@ export interface TMDBTVShow {
   vote_count: number
   genres: { id: number; name: string }[]
 }
+
+export interface MovieRoom {
+  id: string
+  room_code: string
+  movie_id?: string
+  episode_id?: string
+  created_by: string
+  room_name?: string
+  is_active: boolean
+  max_participants: number
+  current_participants: number
+  playback_position: number
+  is_playing: boolean
+  playback_speed: number
+  last_activity: string
+  created_at: string
+  updated_at: string
+}
+
+export interface RoomParticipant {
+  id: string
+  room_id: string
+  participant_id: string
+  participant_name?: string
+  is_host: boolean
+  joined_at: string
+  last_seen: string
+}
+
+export interface RoomMessage {
+  id: string
+  room_id: string
+  participant_id: string
+  participant_name?: string
+  message: string
+  timestamp: string
+}

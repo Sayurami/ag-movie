@@ -7,7 +7,48 @@ export default async function CategoriesPage() {
   const supabase = await createClient()
 
   // Get all genres with content counts
-  const { data: genres } = await supabase.from("genres").select("*").order("name")
+  const { data: genres, error: genresError } = await supabase.from("genres").select("*").order("name")
+
+  // Handle error or null genres
+  if (genresError || !genres) {
+    console.error("Error fetching genres:", genresError)
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="pt-16">
+          <div className="container mx-auto px-4 py-8">
+            <div className="text-center py-12">
+              <h3 className="text-xl font-semibold text-foreground mb-2">Error Loading Categories</h3>
+              <p className="text-muted-foreground">Unable to load categories at this time. Please try again later.</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  // Handle empty genres array
+  if (genres.length === 0) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="pt-16">
+          <div className="container mx-auto px-4 py-8">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-foreground mb-2">Browse by Category</h1>
+              <p className="text-muted-foreground">Discover movies and TV shows by genre</p>
+            </div>
+            <div className="text-center py-12">
+              <h3 className="text-xl font-semibold text-foreground mb-2">No Categories Available</h3>
+              <p className="text-muted-foreground">Categories will appear here once content is added.</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
 
   // Get movie and TV show counts for each genre
   const genresWithCounts = await Promise.all(

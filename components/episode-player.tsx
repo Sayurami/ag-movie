@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { RedirectBack } from "@/components/redirect-back"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { Episode, TVShow } from "@/lib/types"
 import { Play, X, Volume2, VolumeX, Maximize, Minimize, ArrowLeft, Calendar, Clock, Download, ExternalLink } from "lucide-react"
@@ -29,6 +30,14 @@ export function EpisodePlayer({ episode, tvShow }: EpisodePlayerProps) {
 
   return (
     <div className="min-h-screen">
+      {/* Redirect back system - only active when episode is playing */}
+      {isPlaying && (
+        <RedirectBack 
+          redirectDelay={5} // 5 seconds delay
+          redirectUrl={`/tv/${tvShow.id}/episode/${episode.id}`} // Redirect back to episode page
+        />
+      )}
+      
       {!isPlaying ? (
         // Episode Details with Play Button
         <div className="container mx-auto px-4 py-8">

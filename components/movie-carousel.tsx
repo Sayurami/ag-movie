@@ -97,10 +97,8 @@ export function MovieCarousel({ title, movies, loading }: MovieCarouselProps) {
                   {/* Overlay */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center">
                     <div className="flex gap-2">
-                      <Button asChild size="sm" onClick={(e) => e.preventDefault()}>
-                        <Link href={`/movie/${movie.id}`}>
-                          <Play className="h-4 w-4" />
-                        </Link>
+                      <Button size="sm" onClick={(e) => e.preventDefault()}>
+                        <Play className="h-4 w-4" />
                       </Button>
                       <WatchlistButton
                         id={movie.id.toString()}
