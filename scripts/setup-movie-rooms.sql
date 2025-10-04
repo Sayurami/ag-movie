@@ -159,5 +159,10 @@ GRANT ALL ON room_participants TO authenticated;
 GRANT ALL ON room_messages TO authenticated;
 GRANT USAGE ON SCHEMA public TO authenticated;
 
+-- Enable realtime for tables
+ALTER PUBLICATION supabase_realtime ADD TABLE movie_rooms;
+ALTER PUBLICATION supabase_realtime ADD TABLE room_participants;
+ALTER PUBLICATION supabase_realtime ADD TABLE room_messages;
+
 -- Success message
 SELECT 'Movie rooms setup completed successfully!' as status;

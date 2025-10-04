@@ -2,26 +2,18 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
+import { SynchronizedVideoPlayer } from "@/components/synchronized-video-player"
+import { RoomChat } from "@/components/room-chat"
+import { useRoomRealtime } from "@/hooks/use-room-realtime"
 import { useToast } from "@/hooks/use-toast"
 import { 
   Users, 
-  MessageCircle, 
   Copy, 
-  Play, 
-  Pause, 
-  Volume2, 
-  VolumeX, 
-  Maximize, 
-  Minimize,
   Share2,
   Crown,
-  Clock
+  Wifi,
+  WifiOff
 } from "lucide-react"
 import type { MovieRoom, RoomParticipant, RoomMessage } from "@/lib/types"
 
@@ -35,20 +27,32 @@ interface MovieRoomProps {
 }
 
 export function MovieRoom({ room, participants: initialParticipants, messages: initialMessages }: MovieRoomProps) {
-  const [participants, setParticipants] = useState(initialParticipants)
-  const [messages, setMessages] = useState(initialMessages)
-  const [newMessage, setNewMessage] = useState("")
-  const [isPlaying, setIsPlaying] = useState(room.is_playing)
-  const [playbackPosition, setPlaybackPosition] = useState(room.playback_position)
-  const [isHost, setIsHost] = useState(false)
   const [participantId] = useState(() => `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
   const [participantName, setParticipantName] = useState("")
   const [showNameInput, setShowNameInput] = useState(true)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
-  const content = room.movies || room.episodes
+  // Use real-time hook for live updates
+  const { participants, messages, room: liveRoom, isConnected } = useRoomRealtime({
+    roomId: room.id,
+    onPlaybackUpdate: (data) => {
+      // This will be called when playback state changes from other participants
+      console.log('Playback updated:', data)
+    },
+    onParticipantUpdate: (updatedParticipants) => {
+      // This will be called when participants join/leave
+      console.log('Participants updated:', updatedParticipants)
+    },
+    onMessageUpdate: (updatedMessages) => {
+      // This will be called when new messages arrive
+      console.log('Messages updated:', updatedMessages)
+    }
+  })
+
+  const currentRoom = liveRoom || room
+  const isHost = participants.find(p => p.participant_id === participantId)?.is_host || false
+
+  const content = currentRoom.movies || currentRoom.episodes
   const embedUrl = content?.embed_url
 
   useEffect(() => {
@@ -56,10 +60,6 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
       joinRoom()
     }
   }, [participantName])
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
 
   const joinRoom = async () => {
     try {
@@ -86,8 +86,8 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
     }
   }
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !participantName) return
+  const sendMessage = async (message: string) => {
+    if (!message.trim() || !participantName) return
 
     try {
       const response = await fetch('/api/room-messages', {
@@ -97,15 +97,20 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
           room_id: room.id,
           participant_id: participantId,
           participant_name: participantName,
-          message: newMessage.trim(),
+          message: message.trim(),
         }),
       })
 
-      if (response.ok) {
-        setNewMessage("")
+      if (!response.ok) {
+        throw new Error('Failed to send message')
       }
     } catch (error) {
       console.error('Error sending message:', error)
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -122,11 +127,13 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
           is_playing: playing,
         }),
       })
-
-      setIsPlaying(playing)
-      setPlaybackPosition(position)
     } catch (error) {
       console.error('Error updating playback:', error)
+      toast({
+        title: "Error",
+        description: "Failed to sync playback. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -177,26 +184,34 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
   return (
     <div className="h-screen flex flex-col">
       {/* Room Header */}
-      <div className="bg-card border-b px-4 py-3">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div>
               <h1 className="text-xl font-bold">
                 {content?.title || content?.name}
-                {room.movies ? '' : ` - ${room.episodes?.tv_shows?.name}`}
+                {currentRoom.movies ? '' : ` - ${currentRoom.episodes?.tv_shows?.name}`}
               </h1>
-              <p className="text-sm text-muted-foreground">
-                Room: {room.room_code} • {participants.length} participant{participants.length !== 1 ? 's' : ''}
+              <p className="text-sm text-blue-100">
+                Room: {currentRoom.room_code} • {participants.length} participant{participants.length !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={shareRoom}>
+            <div className="flex items-center gap-2">
+              {isConnected ? (
+                <Wifi className="h-4 w-4 text-green-300" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-red-300" />
+              )}
+              <span className="text-xs">{isConnected ? 'Live' : 'Connecting...'}</span>
+            </div>
+            <Button variant="outline" size="sm" onClick={shareRoom} className="bg-white/10 border-white/20 text-white hover:bg-white/20">
               <Share2 className="h-4 w-4 mr-2" />
               Share
             </Button>
             {isHost && (
-              <Badge variant="secondary">
+              <Badge variant="secondary" className="bg-yellow-500 text-black">
                 <Crown className="h-3 w-3 mr-1" />
                 Host
               </Badge>
@@ -210,91 +225,30 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
         {/* Video Player */}
         <div className="flex-1 bg-black relative">
           {embedUrl && (
-            <iframe
-              ref={iframeRef}
-              src={embedUrl}
-              className="w-full h-full"
-              frameBorder="0"
-              marginWidth={0}
-              marginHeight={0}
-              scrolling="no"
-              allowFullScreen
-              title={content?.title || content?.name}
+            <SynchronizedVideoPlayer
+              embedUrl={embedUrl}
+              isHost={isHost}
+              roomId={room.id}
+              onPlaybackUpdate={updatePlayback}
+              initialPlaybackState={{
+                playback_position: currentRoom.playback_position,
+                is_playing: currentRoom.is_playing
+              }}
             />
           )}
         </div>
 
-        {/* Sidebar */}
-        <div className="w-80 bg-card border-l flex flex-col">
-          {/* Participants */}
-          <div className="p-4 border-b">
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="h-4 w-4" />
-              <span className="font-semibold">Participants</span>
-              <Badge variant="outline">{participants.length}</Badge>
-            </div>
-            <ScrollArea className="h-32">
-              <div className="space-y-2">
-                {participants.map((participant) => (
-                  <div key={participant.id} className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className="text-xs">
-                        {participant.participant_name?.charAt(0).toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm">{participant.participant_name || 'Anonymous'}</span>
-                    {participant.is_host && (
-                      <Crown className="h-3 w-3 text-yellow-500" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
-
-          {/* Chat */}
-          <div className="flex-1 flex flex-col">
-            <div className="p-4 border-b">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="h-4 w-4" />
-                <span className="font-semibold">Chat</span>
-              </div>
-            </div>
-            
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-3">
-                {messages.map((message) => (
-                  <div key={message.id} className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium">
-                        {message.participant_name || 'Anonymous'}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(message.timestamp).toLocaleTimeString()}
-                      </span>
-                    </div>
-                    <p className="text-sm">{message.message}</p>
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
-
-            <div className="p-4 border-t">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Type a message..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                  className="flex-1"
-                />
-                <Button size="icon" onClick={sendMessage} disabled={!newMessage.trim()}>
-                  <MessageCircle className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
+        {/* Chat Sidebar */}
+        <div className="w-96 flex flex-col">
+          <RoomChat
+            messages={messages}
+            participants={participants}
+            roomId={room.id}
+            participantId={participantId}
+            participantName={participantName}
+            onSendMessage={sendMessage}
+            isConnected={isConnected}
+          />
         </div>
       </div>
     </div>
