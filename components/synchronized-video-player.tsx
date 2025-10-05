@@ -86,11 +86,25 @@ export function SynchronizedVideoPlayer({
         }
       }, 1000)
     }
+  }
 
+  // Cleanup message listener on unmount
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'PLAYBACK_UPDATE' && isHost) {
+        const { currentTime: time, isPlaying: playing } = event.data
+        setCurrentTime(time)
+        setIsPlaying(playing)
+        onPlaybackUpdate(time, playing)
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    
     return () => {
       window.removeEventListener('message', handleMessage)
     }
-  }
+  }, [isHost, onPlaybackUpdate])
 
   const handlePlayPause = () => {
     if (iframeRef.current?.contentWindow) {

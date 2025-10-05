@@ -25,6 +25,41 @@ export function useRoomRealtime({
   useEffect(() => {
     const supabase = createClient()
 
+    // Initial data fetch
+    const fetchInitialData = async () => {
+      try {
+        // Fetch participants
+        const { data: initialParticipants } = await supabase
+          .from('room_participants')
+          .select('*')
+          .eq('room_id', roomId)
+          .order('joined_at', { ascending: true })
+
+        // Fetch messages
+        const { data: initialMessages } = await supabase
+          .from('room_messages')
+          .select('*')
+          .eq('room_id', roomId)
+          .order('timestamp', { ascending: false })
+          .limit(50)
+
+        // Fetch room data
+        const { data: roomData } = await supabase
+          .from('movie_rooms')
+          .select('*')
+          .eq('id', roomId)
+          .single()
+
+        if (initialParticipants) setParticipants(initialParticipants)
+        if (initialMessages) setMessages(initialMessages)
+        if (roomData) setRoom(roomData)
+      } catch (error) {
+        console.error('Error fetching initial data:', error)
+      }
+    }
+
+    fetchInitialData()
+
     // Subscribe to room updates (playback state)
     const roomSubscription = supabase
       .channel(`room-${roomId}`)
@@ -107,17 +142,27 @@ export function useRoomRealtime({
 
     // Check connection status
     const checkConnection = () => {
-      setIsConnected(
+      const connected = 
         roomSubscription.state === 'joined' &&
         participantSubscription.state === 'joined' &&
         messageSubscription.state === 'joined'
-      )
+      
+      setIsConnected(connected)
+      
+      // If connected, fetch latest data
+      if (connected) {
+        fetchInitialData()
+      }
     }
 
     // Initial connection check
     setTimeout(checkConnection, 1000)
+    
+    // Periodic connection check
+    const connectionInterval = setInterval(checkConnection, 5000)
 
     return () => {
+      clearInterval(connectionInterval)
       roomSubscription.unsubscribe()
       participantSubscription.unsubscribe()
       messageSubscription.unsubscribe()

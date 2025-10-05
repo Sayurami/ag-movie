@@ -38,9 +38,33 @@ interface ExtendedMovieRoom extends MovieRoom {
 
 export function MovieRoom({ room, participants: initialParticipants, messages: initialMessages }: MovieRoomProps) {
   const { session, isLoading: sessionLoading, saveSession, isLoggedIn } = useRoomSession(room.id)
-  const [participantId] = useState(() => session?.participantId || `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
-  const [participantName, setParticipantName] = useState(session?.participantName || "")
-  const [showNameInput, setShowNameInput] = useState(!isLoggedIn)
+  const [participantId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`room_session_${room.id}`)
+      if (stored) {
+        const session = JSON.parse(stored)
+        return session.participantId || `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      }
+    }
+    return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  })
+  const [participantName, setParticipantName] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`room_session_${room.id}`)
+      if (stored) {
+        const session = JSON.parse(stored)
+        return session.participantName || ""
+      }
+    }
+    return ""
+  })
+  const [showNameInput, setShowNameInput] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`room_session_${room.id}`)
+      return !stored
+    }
+    return true
+  })
   const [isJoining, setIsJoining] = useState(false)
   const { toast } = useToast()
 
@@ -48,16 +72,13 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
   const { participants, messages, room: liveRoom, isConnected } = useRoomRealtime({
     roomId: room.id,
     onPlaybackUpdate: (data) => {
-      // This will be called when playback state changes from other participants
-      console.log('Playback updated:', data)
+      // Handle playback updates silently
     },
     onParticipantUpdate: (updatedParticipants) => {
-      // This will be called when participants join/leave
-      console.log('Participants updated:', updatedParticipants)
+      // Handle participant updates silently
     },
     onMessageUpdate: (updatedMessages) => {
-      // This will be called when new messages arrive
-      console.log('Messages updated:', updatedMessages)
+      // Handle message updates silently
     }
   })
 
@@ -71,17 +92,47 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
   useEffect(() => {
     if (sessionLoading) return // Don't do anything while loading session
     
-    if (isLoggedIn && session) {
-      // User has a valid session, check if they're already in the room
-      const existingParticipant = participants.find(p => p.participant_id === session.participantId)
-      if (!existingParticipant && !isJoining) {
-        setIsJoining(true)
-        joinRoomWithSession(session)
-      } else if (existingParticipant) {
-        setShowNameInput(false)
-      }
+    // Check if user is already in the room
+    const existingParticipant = participants.find(p => p.participant_id === participantId)
+    
+    if (existingParticipant) {
+      setShowNameInput(false)
+      setIsJoining(false)
+      return
     }
-  }, [sessionLoading, isLoggedIn, session, participants, isJoining])
+    
+    // If user has a name but isn't in the room, auto-join
+    if (participantName.trim() && !isJoining && !showNameInput) {
+      setIsJoining(true)
+      joinRoomSilently()
+    }
+  }, [sessionLoading, participants.length, participantId, participantName, isJoining, showNameInput])
+
+  const joinRoomSilently = async () => {
+    try {
+      const response = await fetch('/api/room-participants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          room_id: room.id,
+          participant_id: participantId,
+          participant_name: participantName.trim(),
+        }),
+      })
+
+      if (response.ok) {
+        setShowNameInput(false)
+        setIsJoining(false)
+        // Don't show toast for silent joins
+      } else {
+        console.error('Failed to join room:', response.status)
+        setIsJoining(false)
+      }
+    } catch (error) {
+      console.error('Error joining room:', error)
+      setIsJoining(false)
+    }
+  }
 
   const joinRoomWithSession = async (session: any) => {
     try {
@@ -98,10 +149,14 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
       if (response.ok) {
         setShowNameInput(false)
         setIsJoining(false)
-        toast({
-          title: "Rejoined Room!",
-          description: "Welcome back to the watch party.",
-        })
+        // Only show welcome message if this is a fresh join, not a rejoin
+        const isRejoin = participants.some(p => p.participant_id === session.participantId)
+        if (!isRejoin) {
+          toast({
+            title: "Joined Room!",
+            description: "You've successfully joined the watch party.",
+          })
+        }
       } else {
         console.error('Failed to rejoin room:', response.status)
         setIsJoining(false)
@@ -128,7 +183,17 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
       })
 
       if (response.ok) {
+        // Save session using the hook
         saveSession(participantId, participantName.trim())
+        
+        // Also save to localStorage for immediate access
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`room_session_${room.id}`, JSON.stringify({
+            participantId,
+            participantName: participantName.trim()
+          }))
+        }
+        
         setShowNameInput(false)
         setIsJoining(false)
         toast({
@@ -139,8 +204,8 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
         const errorData = await response.json()
         console.error('Failed to join room:', errorData)
         toast({
-          title: "Error",
-          description: errorData.error || "Failed to join room. Please try again.",
+          title: "Service Temporarily Unavailable",
+          description: "Our website is currently being updated. Please try again later or browse our movies.",
           variant: "destructive",
         })
         setIsJoining(false)
@@ -148,8 +213,8 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
     } catch (error) {
       console.error('Error joining room:', error)
       toast({
-        title: "Error",
-        description: "Failed to join room. Please check your connection.",
+        title: "Connection Error",
+        description: "Unable to connect. Our website is being updated. Please try again later.",
         variant: "destructive",
       })
       setIsJoining(false)
@@ -177,8 +242,8 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
     } catch (error) {
       console.error('Error sending message:', error)
       toast({
-        title: "Error",
-        description: "Failed to send message. Please try again.",
+        title: "Service Temporarily Unavailable",
+        description: "Unable to send message. Our website is being updated. Please try again later.",
         variant: "destructive",
       })
     }
@@ -200,8 +265,8 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
     } catch (error) {
       console.error('Error updating playback:', error)
       toast({
-        title: "Error",
-        description: "Failed to sync playback. Please try again.",
+        title: "Service Temporarily Unavailable",
+        description: "Unable to sync playback. Our website is being updated. Please try again later.",
         variant: "destructive",
       })
     }
@@ -278,9 +343,15 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
           <CardContent className="flex flex-col items-center justify-center py-8">
             <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
             <h3 className="text-lg font-semibold mb-2">Content Not Available</h3>
-            <p className="text-muted-foreground text-center">
-              The movie or episode for this room is not available. Please contact the room creator.
+            <p className="text-muted-foreground text-center mb-4">
+              The movie or episode for this room is not available. Our website is currently being updated.
             </p>
+            <Button 
+              onClick={() => window.location.href = '/movies'}
+              className="bg-gradient-to-r from-red-500 to-purple-500 hover:from-red-600 hover:to-purple-600 text-white"
+            >
+              Browse Movies
+            </Button>
           </CardContent>
         </Card>
       </div>
