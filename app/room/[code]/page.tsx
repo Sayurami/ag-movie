@@ -22,13 +22,13 @@ export default async function RoomPage({ params }: RoomPageProps) {
   const { code } = await params
   const supabase = await createClient()
 
-  // Fetch room data
+  // Fetch room data with proper joins
   const { data: room, error } = await supabase
     .from('movie_rooms')
     .select(`
       *,
-      movies (id, title, poster_path, backdrop_path, embed_url, overview, release_date, runtime, vote_average),
-      episodes (id, name, embed_url, tv_shows (id, name))
+      movies!movie_rooms_movie_id_fkey (id, title, poster_path, backdrop_path, embed_url, overview, release_date, runtime, vote_average),
+      episodes!movie_rooms_episode_id_fkey (id, name, embed_url, tv_shows (id, name))
     `)
     .eq('room_code', code.toUpperCase())
     .eq('is_active', true)
@@ -51,12 +51,46 @@ export default async function RoomPage({ params }: RoomPageProps) {
     episode_name: room.episodes?.name
   })
 
-  // Ensure room has the necessary data
+  // If no content found via joins, try direct queries
   if (!room.movies && !room.episodes) {
-    console.error('Room has no associated content')
-    console.error('Room movie_id:', room.movie_id)
-    console.error('Room episode_id:', room.episode_id)
-    notFound()
+    console.log('No content found via joins, trying direct queries...')
+    
+    let content = null
+    
+    if (room.movie_id) {
+      const { data: movie } = await supabase
+        .from('movies')
+        .select('id, title, poster_path, backdrop_path, embed_url, overview, release_date, runtime, vote_average')
+        .eq('id', room.movie_id)
+        .single()
+      
+      if (movie) {
+        content = { ...room, movies: movie }
+      }
+    } else if (room.episode_id) {
+      const { data: episode } = await supabase
+        .from('episodes')
+        .select(`
+          id, name, embed_url,
+          tv_shows (id, name)
+        `)
+        .eq('id', room.episode_id)
+        .single()
+      
+      if (episode) {
+        content = { ...room, episodes: episode }
+      }
+    }
+    
+    if (content) {
+      room.movies = content.movies
+      room.episodes = content.episodes
+    } else {
+      console.error('Room has no associated content after direct queries')
+      console.error('Room movie_id:', room.movie_id)
+      console.error('Room episode_id:', room.episode_id)
+      notFound()
+    }
   }
 
   // Get participants

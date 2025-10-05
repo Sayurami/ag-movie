@@ -41,6 +41,7 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
   const [participantId] = useState(() => session?.participantId || `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
   const [participantName, setParticipantName] = useState(session?.participantName || "")
   const [showNameInput, setShowNameInput] = useState(!isLoggedIn)
+  const [isJoining, setIsJoining] = useState(false)
   const { toast } = useToast()
 
   // Use real-time hook for live updates
@@ -66,13 +67,55 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
   const content = currentRoom.movies || currentRoom.episodes
   const embedUrl = content?.embed_url
 
+  // Handle session restoration and auto-join
   useEffect(() => {
-    if (participantName && !participants.find(p => p.participant_id === participantId)) {
-      joinRoom()
+    if (sessionLoading) return // Don't do anything while loading session
+    
+    if (isLoggedIn && session) {
+      // User has a valid session, check if they're already in the room
+      const existingParticipant = participants.find(p => p.participant_id === session.participantId)
+      if (!existingParticipant && !isJoining) {
+        setIsJoining(true)
+        joinRoomWithSession(session)
+      } else if (existingParticipant) {
+        setShowNameInput(false)
+      }
     }
-  }, [participantName])
+  }, [sessionLoading, isLoggedIn, session, participants, isJoining])
+
+  const joinRoomWithSession = async (session: any) => {
+    try {
+      const response = await fetch('/api/room-participants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          room_id: room.id,
+          participant_id: session.participantId,
+          participant_name: session.participantName,
+        }),
+      })
+
+      if (response.ok) {
+        setShowNameInput(false)
+        setIsJoining(false)
+        toast({
+          title: "Rejoined Room!",
+          description: "Welcome back to the watch party.",
+        })
+      } else {
+        console.error('Failed to rejoin room:', response.status)
+        setIsJoining(false)
+      }
+    } catch (error) {
+      console.error('Error rejoining room:', error)
+      setIsJoining(false)
+    }
+  }
 
   const joinRoom = async () => {
+    if (!participantName.trim()) return
+    
+    setIsJoining(true)
     try {
       const response = await fetch('/api/room-participants', {
         method: 'POST',
@@ -80,20 +123,36 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
         body: JSON.stringify({
           room_id: room.id,
           participant_id: participantId,
-          participant_name: participantName,
+          participant_name: participantName.trim(),
         }),
       })
 
       if (response.ok) {
-        saveSession(participantId, participantName)
+        saveSession(participantId, participantName.trim())
         setShowNameInput(false)
+        setIsJoining(false)
         toast({
           title: "Joined Room!",
           description: "You've successfully joined the watch party.",
         })
+      } else {
+        const errorData = await response.json()
+        console.error('Failed to join room:', errorData)
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to join room. Please try again.",
+          variant: "destructive",
+        })
+        setIsJoining(false)
       }
     } catch (error) {
       console.error('Error joining room:', error)
+      toast({
+        title: "Error",
+        description: "Failed to join room. Please check your connection.",
+        variant: "destructive",
+      })
+      setIsJoining(false)
     }
   }
 
@@ -200,10 +259,10 @@ export function MovieRoom({ room, participants: initialParticipants, messages: i
             </div>
             <Button 
               onClick={joinRoom} 
-              disabled={!participantName.trim()}
+              disabled={!participantName.trim() || isJoining}
               className="w-full"
             >
-              Join Room
+              {isJoining ? "Joining..." : "Join Room"}
             </Button>
           </CardContent>
         </Card>
