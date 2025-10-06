@@ -84,9 +84,9 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden mx-4 sm:mx-0">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <Search className="h-5 w-5" />
             Search Movies & TV Shows
           </DialogTitle>
@@ -98,17 +98,17 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyPress={handleKeyPress}
-            className="text-lg"
+            className="text-base sm:text-lg"
             autoFocus
           />
 
-          <div className="max-h-96 overflow-y-auto space-y-2">
+          <div className="max-h-[50vh] sm:max-h-96 overflow-y-auto space-y-2">
             {loading && <div className="text-center py-8 text-muted-foreground">Searching...</div>}
 
             {!loading && query && results.length === 0 && (
               <div className="text-center py-8">
                 <div className="text-muted-foreground mb-4">No results found for "{query}"</div>
-                <Button onClick={handleViewAllResults} variant="outline">
+                <Button onClick={handleViewAllResults} variant="outline" className="w-full sm:w-auto">
                   <ExternalLink className="h-4 w-4 mr-2" />
                   View All Results & Request
                 </Button>
@@ -134,11 +134,11 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 <img
                   src={getTMDBImageUrl(item.poster_path || "", "w92") || "/placeholder.svg"}
                   alt={"title" in item ? item.title : item.name}
-                  className="w-12 h-18 object-cover rounded"
+                  className="w-12 h-18 object-cover rounded flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold truncate">{"title" in item ? item.title : item.name}</h3>
-                  <div className="flex items-center gap-2 mt-1">
+                  <h3 className="font-semibold truncate text-sm sm:text-base">{"title" in item ? item.title : item.name}</h3>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <Badge variant="outline" className="text-xs">
                       {"title" in item ? <Film className="h-3 w-3 mr-1" /> : <Tv className="h-3 w-3 mr-1" />}
                       {"title" in item ? "Movie" : "TV Show"}

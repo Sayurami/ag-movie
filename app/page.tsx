@@ -39,7 +39,7 @@ export default async function HomePage() {
 
         {heroMovie && <HeroSection movie={heroMovie} />}
 
-        <main className="relative z-10 -mt-32 space-y-12 pb-24 md:pb-20">
+        <main className="relative z-10 -mt-32 space-y-12 pb-20 md:pb-20 pt-14 md:pt-0">
           {trendingMovies.length > 0 && <MovieCarousel title="Trending Movies" movies={trendingMovies} />}
 
           {topRatedMovies.length > 0 && <MovieCarousel title="Top Rated Movies" movies={topRatedMovies} />}

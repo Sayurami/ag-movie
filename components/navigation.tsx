@@ -6,12 +6,13 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { SearchModal } from "@/components/search-modal"
 import { PWAInstallGuide } from "@/components/pwa-install-guide"
-import { Search, Home, Clock, Bookmark, Grid3X3, Download, Film, Tv, Plus } from "lucide-react"
+import { Search, Home, Clock, Bookmark, Grid3X3, Download, Film, Tv, Plus, Menu, X } from "lucide-react"
 
 export function Navigation() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const pathname = usePathname()
 
   useEffect(() => {
@@ -60,8 +61,12 @@ export function Navigation() {
     { href: "/movies", label: "Movies", icon: Film },
     { href: "/tv-shows", label: "Shows", icon: Tv },
     { href: "/coming-soon", label: "Coming", icon: Clock },
-    { href: "/request-movie", label: "Request", icon: Plus },
     { href: "/watchlist", label: "My List", icon: Bookmark },
+  ]
+
+  const additionalMobileItems = [
+    { href: "/categories", label: "Categories", icon: Grid3X3 },
+    { href: "/request-movie", label: "Request", icon: Plus },
   ]
 
   // Add install button to mobile nav if not installed
@@ -113,9 +118,84 @@ export function Navigation() {
         </div>
       </nav>
 
+      {/* Mobile Top Navigation */}
+      <nav className="md:hidden fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+        <div className="flex items-center justify-between h-14 px-4">
+          {/* Logo */}
+          <Link href="/" className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-sm">AG</span>
+            </div>
+            <span className="text-lg font-bold text-foreground">MOVIES</span>
+          </Link>
+
+          {/* Mobile Actions */}
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsSearchOpen(true)}
+              className="text-muted-foreground hover:text-foreground p-2"
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="text-muted-foreground hover:text-foreground p-2"
+            >
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Menu Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="absolute top-14 left-0 right-0 bg-background/95 backdrop-blur-md border-b border-border shadow-lg">
+            <div className="px-4 py-3 space-y-3">
+              {additionalMobileItems.map((item) => {
+                const IconComponent = item.icon
+                const isActive = pathname === item.href
+                
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center space-x-3 py-2 px-3 rounded-lg transition-colors ${
+                      isActive 
+                        ? 'bg-primary/10 text-primary' 
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                    }`}
+                  >
+                    <IconComponent className="h-5 w-5" />
+                    <span className="font-medium">{item.label}</span>
+                  </Link>
+                )
+              })}
+              
+              {!isInstalled && (
+                <button
+                  onClick={() => {
+                    handleInstallClick()
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className="flex items-center space-x-3 py-2 px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors w-full"
+                >
+                  <Download className="h-5 w-5" />
+                  <span className="font-medium">Install App</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </nav>
+
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border">
-        <div className="flex items-center justify-start overflow-x-auto py-3 px-2 space-x-1">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border safe-area-pb">
+        <div className="flex items-center justify-around py-2 px-1">
           {allMobileNavItems.map((item) => {
             const IconComponent = item.icon
             const isActive = pathname === item.href
@@ -126,10 +206,10 @@ export function Navigation() {
                 <button
                   key="install"
                   onClick={handleInstallClick}
-                  className="flex flex-col items-center justify-center py-2 px-3 text-muted-foreground hover:text-foreground transition-colors min-w-[60px]"
+                  className="flex flex-col items-center justify-center py-2 px-1 text-muted-foreground hover:text-foreground transition-colors min-w-0 flex-1"
                 >
                   <IconComponent className="h-5 w-5 mb-1" />
-                  <span className="text-xs font-medium">Install</span>
+                  <span className="text-xs font-medium truncate">Install</span>
                 </button>
               )
             }
@@ -138,33 +218,19 @@ export function Navigation() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center py-2 px-3 transition-colors min-w-[60px] ${
+                className={`flex flex-col items-center justify-center py-2 px-1 transition-colors min-w-0 flex-1 ${
                   isActive 
-                    ? 'text-blue-500' 
+                    ? 'text-primary' 
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <IconComponent className="h-5 w-5 mb-1" />
-                <span className="text-xs font-medium">{item.label}</span>
+                <span className="text-xs font-medium truncate">{item.label}</span>
               </Link>
             )
           })}
         </div>
       </nav>
-
-      {/* Floating Categories Button for Mobile */}
-      <div className="md:hidden fixed top-4 right-4 z-50">
-        <Button
-          asChild
-          size="sm"
-          className="bg-background/80 backdrop-blur-md border border-border hover:bg-background/90 shadow-lg"
-        >
-          <Link href="/categories" className="flex items-center gap-2">
-            <Grid3X3 className="h-4 w-4" />
-            <span className="text-sm font-medium">Categories</span>
-          </Link>
-        </Button>
-      </div>
 
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
