@@ -4,23 +4,28 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { RedirectBack } from "@/components/redirect-back"
-import { MovieRoomCreator } from "@/components/movie-room-creator"
-import { MovieRoomJoiner } from "@/components/movie-room-joiner"
+import { MovieActionButtons } from "@/components/movie-action-buttons"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { Movie } from "@/lib/types"
-import { Play, X, Volume2, VolumeX, Maximize, Minimize, Download, ExternalLink } from "lucide-react"
+import { Play, X, Volume2, VolumeX, Maximize, Minimize, ChevronRight, Settings, RotateCcw } from "lucide-react"
 
 interface MoviePlayerProps {
   movie: Movie
+  nextMovie?: Movie
+  onNextMovie?: () => void
 }
 
-export function MoviePlayer({ movie }: MoviePlayerProps) {
+export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [isTrailerPlaying, setIsTrailerPlaying] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [videoLoaded, setVideoLoaded] = useState(false)
+  const [showNextEpisode, setShowNextEpisode] = useState(false)
+  const [autoNextEnabled, setAutoNextEnabled] = useState(false)
+  const [nextEpisodeTimer, setNextEpisodeTimer] = useState(10)
+  const [videoEnded, setVideoEnded] = useState(false)
 
   const backdropUrl = getTMDBImageUrl(movie.backdrop_path || "", "original")
   const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : ""
@@ -69,6 +74,82 @@ export function MoviePlayer({ movie }: MoviePlayerProps) {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Auto-next functionality
+  useEffect(() => {
+    if (isPlaying && nextMovie && autoNextEnabled) {
+      const timer = setInterval(() => {
+        setNextEpisodeTimer((prev) => {
+          if (prev <= 1) {
+            onNextMovie?.()
+            return 10
+          }
+          return prev - 1
+        })
+      }, 1000)
+
+      return () => clearInterval(timer)
+    }
+  }, [isPlaying, nextMovie, autoNextEnabled, onNextMovie])
+
+  // Show next episode hover after 5 minutes of playing
+  useEffect(() => {
+    if (isPlaying && nextMovie) {
+      const timer = setTimeout(() => {
+        setShowNextEpisode(true)
+      }, 5 * 60 * 1000) // 5 minutes
+
+      return () => clearTimeout(timer)
+    }
+  }, [isPlaying, nextMovie])
+
+  // Handle video end detection and automatic redirect
+  useEffect(() => {
+    if (videoEnded && nextMovie && autoNextEnabled) {
+      // Start countdown for automatic redirect
+      const timer = setInterval(() => {
+        setNextEpisodeTimer((prev) => {
+          if (prev <= 1) {
+            onNextMovie?.()
+            return 10
+          }
+          return prev - 1
+        })
+      }, 1000)
+
+      return () => clearInterval(timer)
+    } else if (videoEnded && nextMovie) {
+      // Show next episode card when video ends
+      setShowNextEpisode(true)
+    }
+  }, [videoEnded, nextMovie, autoNextEnabled, onNextMovie])
+
+  // Listen for video end events
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && typeof event.data === 'string') {
+        try {
+          const data = JSON.parse(event.data)
+          if (data.event === 'video-ended' || data.event === 'ended') {
+            setVideoEnded(true)
+          }
+        } catch (e) {
+          // Handle non-JSON messages
+          if (event.data.includes('ended') || event.data.includes('complete')) {
+            setVideoEnded(true)
+          }
+        }
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
+
+  const handleLike = () => {
+    // TODO: Implement like functionality
+    console.log("Liked movie:", movie.title)
+  }
 
   return (
     <div className="relative">
@@ -139,35 +220,13 @@ export function MoviePlayer({ movie }: MoviePlayerProps) {
                 </Badge>
               )}
             </div>
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-center animate-fade-in animate-stagger-3">
-              <Button size="lg" onClick={handlePlay} className="text-xl px-12 py-6 hover-lift animate-pulse-hover">
-                <Play className="h-6 w-6 mr-3" />
-                Play Movie
-              </Button>
-              
-              {movie.download_url && (
-                <Button size="lg" variant="outline" asChild className="text-xl px-12 py-6">
-                  <a href={movie.download_url} target="_blank" rel="noopener noreferrer">
-                    <Download className="h-6 w-6 mr-3" />
-                    Download
-                  </a>
-                </Button>
-              )}
-              
-              {movie.trailer_url && (
-                <Button size="lg" variant="outline" asChild className="text-xl px-12 py-6">
-                  <a href={movie.trailer_url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-6 w-6 mr-3" />
-                    Watch Trailer
-                  </a>
-                </Button>
-              )}
-            </div>
-            
-            {/* Movie Room Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-center mt-6 animate-fade-in animate-stagger-4">
-              <MovieRoomCreator movie={movie} />
-              <MovieRoomJoiner />
+            <div className="animate-fade-in animate-stagger-3">
+              <MovieActionButtons 
+                movie={movie} 
+                onPlay={handlePlay}
+                onLike={handleLike}
+                isLiked={false}
+              />
             </div>
           </div>
         </div>
@@ -187,6 +246,89 @@ export function MoviePlayer({ movie }: MoviePlayerProps) {
             </Button>
           </div>
 
+          {/* Auto-next Settings */}
+          {nextMovie && (
+            <div className="absolute top-4 left-4 z-10">
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => setAutoNextEnabled(!autoNextEnabled)}
+                className={autoNextEnabled ? "bg-green-600 hover:bg-green-700" : ""}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Auto-next: {autoNextEnabled ? "ON" : "OFF"}
+              </Button>
+            </div>
+          )}
+
+          {/* Next Episode Hover */}
+          {showNextEpisode && nextMovie && (
+            <div className="absolute bottom-4 right-4 z-10 max-w-sm">
+              <div className="bg-black/80 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                <div className="flex items-center gap-3 mb-3">
+                  <img
+                    src={getTMDBImageUrl(nextMovie.poster_path || "", "w92") || "/placeholder.svg"}
+                    alt={nextMovie.title}
+                    className="w-12 h-16 object-cover rounded"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-white text-sm truncate">{nextMovie.title}</h4>
+                    <p className="text-xs text-gray-300">
+                      {nextMovie.release_date ? new Date(nextMovie.release_date).getFullYear() : ""}
+                    </p>
+                    {videoEnded && (
+                      <p className="text-xs text-yellow-400 font-medium">Video Finished</p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    onClick={onNextMovie}
+                    className="flex-1 bg-primary hover:bg-primary/90"
+                  >
+                    <ChevronRight className="h-4 w-4 mr-2" />
+                    {videoEnded ? "Play Next" : "Play Next"}
+                  </Button>
+                  
+                  {(autoNextEnabled || videoEnded) && (
+                    <div className="flex items-center gap-2 text-xs text-gray-300">
+                      <RotateCcw className="h-3 w-3" />
+                      {nextEpisodeTimer}s
+                    </div>
+                  )}
+                </div>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setShowNextEpisode(false)
+                    setVideoEnded(false)
+                  }}
+                  className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-400 hover:text-white"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Manual Video End Button for Testing */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="absolute bottom-4 left-4 z-10">
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => setVideoEnded(true)}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Test Video End
+              </Button>
+            </div>
+          )}
+
           {/* Embedded Video Player */}
           <div className="w-full h-full flex items-center justify-center">
             <iframe
@@ -198,6 +340,17 @@ export function MoviePlayer({ movie }: MoviePlayerProps) {
               scrolling="no"
               allowFullScreen
               title={movie.title}
+              onLoad={() => {
+                // Try to detect video end through various methods
+                const iframe = document.querySelector('iframe')
+                if (iframe) {
+                  // Listen for iframe messages
+                  iframe.addEventListener('load', () => {
+                    // Additional video end detection logic can be added here
+                    console.log('Video iframe loaded')
+                  })
+                }
+              }}
             />
           </div>
         </div>

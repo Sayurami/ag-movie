@@ -57,10 +57,10 @@ export function MovieRoomJoiner({ onRoomJoined }: MovieRoomJoinerProps) {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button 
-          variant="outline" 
-          className="text-xl px-12 py-6 hover-lift"
+          variant="ghost" 
+          className="w-full justify-start text-left"
         >
-          <Users className="h-6 w-6 mr-3" />
+          <Users className="h-4 w-4 mr-2" />
           Join Watch Party
         </Button>
       </DialogTrigger>

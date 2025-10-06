@@ -46,13 +46,22 @@ export default async function MoviePage({ params }: MoviePageProps) {
     })
     .slice(0, 20)
 
+  // Find next movie (could be next part or related movie)
+  const nextMovie = relatedMovies[0] || null
+
+  const handleNextMovie = () => {
+    if (nextMovie) {
+      window.location.href = `/movie/${nextMovie.id}`
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <StructuredData type="movie" data={movie} />
       <Navigation />
 
       <main className="pt-16">
-        <MoviePlayer movie={movie} />
+        <MoviePlayer movie={movie} nextMovie={nextMovie} onNextMovie={handleNextMovie} />
         <MovieDetails movie={movie} />
 
         {relatedMovies.length > 0 && (

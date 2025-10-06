@@ -22,12 +22,32 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
     notFound()
   }
 
+  // Find next episode in the same season
+  const { data: nextEpisode } = await supabase
+    .from("episodes")
+    .select("*")
+    .eq("tv_show_id", id)
+    .eq("season_number", episode.season_number)
+    .eq("episode_number", episode.episode_number + 1)
+    .single()
+
+  const handleNextEpisode = () => {
+    if (nextEpisode) {
+      window.location.href = `/tv/${id}/episode/${nextEpisode.id}`
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
 
       <main className="pt-16">
-        <EpisodePlayer episode={episode} tvShow={tvShow} />
+        <EpisodePlayer 
+          episode={episode} 
+          tvShow={tvShow} 
+          nextEpisode={nextEpisode || undefined}
+          onNextEpisode={handleNextEpisode}
+        />
       </main>
 
       <Footer />

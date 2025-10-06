@@ -170,11 +170,11 @@ export function MovieRoomCreator({ movie, onRoomCreated }: MovieRoomCreatorProps
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button 
-          variant="outline" 
-          className="text-xl px-12 py-6 hover-lift"
+          variant="ghost" 
+          className="w-full justify-start text-left"
           onClick={() => setRoomName(`${movie.title} Watch Party`)}
         >
-          <Users className="h-6 w-6 mr-3" />
+          <Users className="h-4 w-4 mr-2" />
           Create Watch Party
         </Button>
       </DialogTrigger>

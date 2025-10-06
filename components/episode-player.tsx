@@ -7,18 +7,24 @@ import { Card, CardContent } from "@/components/ui/card"
 import { RedirectBack } from "@/components/redirect-back"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { Episode, TVShow } from "@/lib/types"
-import { Play, X, Volume2, VolumeX, Maximize, Minimize, ArrowLeft, Calendar, Clock, Download, ExternalLink } from "lucide-react"
+import { Play, X, Volume2, VolumeX, Maximize, Minimize, ArrowLeft, Calendar, Clock, Download, ExternalLink, ChevronRight, Settings, RotateCcw } from "lucide-react"
 import Link from "next/link"
 
 interface EpisodePlayerProps {
   episode: Episode
   tvShow: TVShow
+  nextEpisode?: Episode
+  onNextEpisode?: () => void
 }
 
-export function EpisodePlayer({ episode, tvShow }: EpisodePlayerProps) {
+export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: EpisodePlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
+  const [showNextEpisode, setShowNextEpisode] = useState(false)
+  const [autoNextEnabled, setAutoNextEnabled] = useState(false)
+  const [nextEpisodeTimer, setNextEpisodeTimer] = useState(10)
+  const [videoEnded, setVideoEnded] = useState(false)
 
   const handlePlay = () => {
     setIsPlaying(true)
@@ -27,6 +33,77 @@ export function EpisodePlayer({ episode, tvShow }: EpisodePlayerProps) {
   const handleClose = () => {
     setIsPlaying(false)
   }
+
+  // Auto-next functionality
+  useEffect(() => {
+    if (isPlaying && nextEpisode && autoNextEnabled) {
+      const timer = setInterval(() => {
+        setNextEpisodeTimer((prev) => {
+          if (prev <= 1) {
+            onNextEpisode?.()
+            return 10
+          }
+          return prev - 1
+        })
+      }, 1000)
+
+      return () => clearInterval(timer)
+    }
+  }, [isPlaying, nextEpisode, autoNextEnabled, onNextEpisode])
+
+  // Show next episode hover after 5 minutes of playing
+  useEffect(() => {
+    if (isPlaying && nextEpisode) {
+      const timer = setTimeout(() => {
+        setShowNextEpisode(true)
+      }, 5 * 60 * 1000) // 5 minutes
+
+      return () => clearTimeout(timer)
+    }
+  }, [isPlaying, nextEpisode])
+
+  // Handle video end detection and automatic redirect
+  useEffect(() => {
+    if (videoEnded && nextEpisode && autoNextEnabled) {
+      // Start countdown for automatic redirect
+      const timer = setInterval(() => {
+        setNextEpisodeTimer((prev) => {
+          if (prev <= 1) {
+            onNextEpisode?.()
+            return 10
+          }
+          return prev - 1
+        })
+      }, 1000)
+
+      return () => clearInterval(timer)
+    } else if (videoEnded && nextEpisode) {
+      // Show next episode card when video ends
+      setShowNextEpisode(true)
+    }
+  }, [videoEnded, nextEpisode, autoNextEnabled, onNextEpisode])
+
+  // Listen for video end events
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && typeof event.data === 'string') {
+        try {
+          const data = JSON.parse(event.data)
+          if (data.event === 'video-ended' || data.event === 'ended') {
+            setVideoEnded(true)
+          }
+        } catch (e) {
+          // Handle non-JSON messages
+          if (event.data.includes('ended') || event.data.includes('complete')) {
+            setVideoEnded(true)
+          }
+        }
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
 
   return (
     <div className="min-h-screen">
@@ -198,6 +275,89 @@ export function EpisodePlayer({ episode, tvShow }: EpisodePlayerProps) {
             </h3>
             <p className="text-white/80 text-sm">{episode.name}</p>
           </div>
+
+          {/* Auto-next Settings */}
+          {nextEpisode && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => setAutoNextEnabled(!autoNextEnabled)}
+                className={autoNextEnabled ? "bg-green-600 hover:bg-green-700" : ""}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Auto-next: {autoNextEnabled ? "ON" : "OFF"}
+              </Button>
+            </div>
+          )}
+
+          {/* Next Episode Hover */}
+          {showNextEpisode && nextEpisode && (
+            <div className="absolute bottom-4 right-4 z-10 max-w-sm">
+              <div className="bg-black/80 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                <div className="flex items-center gap-3 mb-3">
+                  <img
+                    src={getTMDBImageUrl(nextEpisode.still_path || "", "w92") || "/placeholder.svg"}
+                    alt={nextEpisode.name}
+                    className="w-12 h-16 object-cover rounded"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-white text-sm truncate">{nextEpisode.name}</h4>
+                    <p className="text-xs text-gray-300">
+                      S{nextEpisode.season_number}E{nextEpisode.episode_number}
+                    </p>
+                    {videoEnded && (
+                      <p className="text-xs text-yellow-400 font-medium">Episode Finished</p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    onClick={onNextEpisode}
+                    className="flex-1 bg-primary hover:bg-primary/90"
+                  >
+                    <ChevronRight className="h-4 w-4 mr-2" />
+                    Play Next
+                  </Button>
+                  
+                  {(autoNextEnabled || videoEnded) && (
+                    <div className="flex items-center gap-2 text-xs text-gray-300">
+                      <RotateCcw className="h-3 w-3" />
+                      {nextEpisodeTimer}s
+                    </div>
+                  )}
+                </div>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setShowNextEpisode(false)
+                    setVideoEnded(false)
+                  }}
+                  className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-400 hover:text-white"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Manual Video End Button for Testing */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="absolute bottom-4 left-4 z-10">
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => setVideoEnded(true)}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Test Episode End
+              </Button>
+            </div>
+          )}
 
           {/* Embedded Video Player */}
           <div className="w-full h-full flex items-center justify-center">
