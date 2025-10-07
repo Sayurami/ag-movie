@@ -41,8 +41,8 @@ export function MobileVideoPlayer({ src, title, poster, onClose }: MobileVideoPl
   const handleError = () => {
     setHasError(true)
     setIsLoading(false)
-    // Show fallback after 2 failed attempts
-    if (retryCount >= 2) {
+    // Show fallback after 1 failed attempt
+    if (retryCount >= 1) {
       setShowFallback(true)
     }
   }
@@ -51,16 +51,11 @@ export function MobileVideoPlayer({ src, title, poster, onClose }: MobileVideoPl
     setHasError(false)
     setIsLoading(true)
     setRetryCount(prev => prev + 1)
+    setShowFallback(false)
     
-    // Force reload iframe
+    // Simple reload without forcing src change
     if (iframeRef.current) {
-      const currentSrc = iframeRef.current.src
-      iframeRef.current.src = ''
-      setTimeout(() => {
-        if (iframeRef.current) {
-          iframeRef.current.src = currentSrc
-        }
-      }, 100)
+      iframeRef.current.src = iframeRef.current.src
     }
   }
 
@@ -76,9 +71,7 @@ export function MobileVideoPlayer({ src, title, poster, onClose }: MobileVideoPl
     title: title,
     frameBorder: "0",
     allowFullScreen: true,
-    loading: "lazy" as const,
-    allow: "autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope; web-share",
-    referrerPolicy: "no-referrer-when-downgrade" as const,
+    allow: "autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope",
     style: {
       width: '100%',
       height: '100%',

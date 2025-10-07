@@ -8,7 +8,6 @@ import { LoadingSpinner } from "@/components/ui/loading"
 import { MobileVideoPlayer } from "@/components/mobile-video-player"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import { isMobile } from "@/lib/mobile-utils"
-import { createAdBlockerBypass, reloadIframe, isIframeBlocked } from "@/lib/adblocker-bypass"
 import type { Movie } from "@/lib/types"
 import { Play, X, Volume2, VolumeX, Maximize, Minimize, ChevronRight, Settings, RotateCcw } from "lucide-react"
 
@@ -218,39 +217,22 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
             <iframe
               ref={iframeRef}
               src={movie.embed_url}
-              className="w-full h-full video-player-iframe"
+              className="w-full h-full"
               frameBorder="0"
               allowFullScreen
-              allow={isMobileDevice ? "autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope" : "autoplay; encrypted-media; fullscreen; picture-in-picture"}
+              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
               title={movie.title}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              data-src={movie.embed_url}
-              data-adblock-bypass="true"
               style={{
                 border: 'none',
                 outline: 'none',
-                ...(isMobileDevice && {
-                  width: '100vw',
-                  height: '100vh',
-                  maxWidth: '100%',
-                  maxHeight: '100%'
-                })
+                width: '100%',
+                height: '100%'
               }}
               onLoad={() => {
                 console.log('Video loaded successfully')
-                // Check if blocked and reload if necessary
-                if (iframeRef.current && isIframeBlocked(iframeRef.current)) {
-                  console.log('Iframe blocked, attempting reload...')
-                  reloadIframe(iframeRef.current)
-                }
               }}
               onError={(e) => {
                 console.error('Video failed to load:', e)
-                // Try to reload iframe
-                if (iframeRef.current) {
-                  reloadIframe(iframeRef.current)
-                }
               }}
             />
           </div>

@@ -333,10 +333,14 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
               className="w-full h-full"
               frameBorder="0"
               allowFullScreen
-              allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
+              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
               title={episode.name}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
+              style={{
+                border: 'none',
+                outline: 'none',
+                width: '100%',
+                height: '100%'
+              }}
               onLoad={() => {
                 console.log('Episode video loaded successfully')
               }}
