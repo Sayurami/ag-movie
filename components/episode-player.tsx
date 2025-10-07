@@ -9,6 +9,7 @@ import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { Episode, TVShow } from "@/lib/types"
 import { Play, X, Volume2, VolumeX, Maximize, Minimize, ArrowLeft, Calendar, Clock, Download, ExternalLink, ChevronRight, Settings, RotateCcw } from "lucide-react"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
 
 interface EpisodePlayerProps {
   episode: Episode
@@ -23,14 +24,41 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
   const [isMuted, setIsMuted] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [showNextEpisode, setShowNextEpisode] = useState(false)
-  const [autoNextEnabled, setAutoNextEnabled] = useState(false)
+  const [autoNextEnabled, setAutoNextEnabled] = useState(false) // Disabled by default
   const [nextEpisodeTimer, setNextEpisodeTimer] = useState(10)
   const [videoEnded, setVideoEnded] = useState(false)
+  const [episodes, setEpisodes] = useState<Episode[]>([])
+  const [loadingEpisodes, setLoadingEpisodes] = useState(false)
 
   // Handle client-side mounting
   useEffect(() => {
     setMounted(true)
+    fetchEpisodes()
   }, [])
+
+  const fetchEpisodes = async () => {
+    try {
+      setLoadingEpisodes(true)
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("episodes")
+        .select("*")
+        .eq("tv_show_id", tvShow.id)
+        .order("season_number", { ascending: true })
+        .order("episode_number", { ascending: true })
+
+      if (error) {
+        console.error("Error fetching episodes:", error)
+        return
+      }
+
+      setEpisodes(data || [])
+    } catch (error) {
+      console.error("Error fetching episodes:", error)
+    } finally {
+      setLoadingEpisodes(false)
+    }
+  }
 
   const handlePlay = () => {
     setIsPlaying(true)
@@ -42,58 +70,58 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
     setShowNextEpisode(false)
   }
 
-  // Auto-next functionality
-  useEffect(() => {
-    if (isPlaying && nextEpisode && autoNextEnabled) {
-      const timer = setInterval(() => {
-        setNextEpisodeTimer((prev) => {
-          if (prev <= 1) {
-            // Use setTimeout to avoid setState during render
-            setTimeout(() => {
-              onNextEpisode?.()
-            }, 0)
-            return 10
-          }
-          return prev - 1
-        })
-      }, 1000)
+  // Auto-next functionality - DISABLED
+  // useEffect(() => {
+  //   if (isPlaying && nextEpisode && autoNextEnabled) {
+  //     const timer = setInterval(() => {
+  //       setNextEpisodeTimer((prev) => {
+  //         if (prev <= 1) {
+  //           // Use setTimeout to avoid setState during render
+  //           setTimeout(() => {
+  //             onNextEpisode?.()
+  //           }, 0)
+  //           return 10
+  //         }
+  //         return prev - 1
+  //       })
+  //     }, 1000)
 
-      return () => clearInterval(timer)
-    }
-  }, [isPlaying, nextEpisode, autoNextEnabled, onNextEpisode])
+  //     return () => clearInterval(timer)
+  //   }
+  // }, [isPlaying, nextEpisode, autoNextEnabled, onNextEpisode])
 
-  // Show next episode after 5 minutes
-  useEffect(() => {
-    if (isPlaying && nextEpisode) {
-      const timer = setTimeout(() => {
-        setShowNextEpisode(true)
-      }, 5 * 60 * 1000) // 5 minutes
+  // Show next episode after 5 minutes - DISABLED
+  // useEffect(() => {
+  //   if (isPlaying && nextEpisode) {
+  //     const timer = setTimeout(() => {
+  //       setShowNextEpisode(true)
+  //     }, 5 * 60 * 1000) // 5 minutes
 
-      return () => clearTimeout(timer)
-    }
-  }, [isPlaying, nextEpisode])
+  //     return () => clearTimeout(timer)
+  //   }
+  // }, [isPlaying, nextEpisode])
 
-  // Handle video end detection
-  useEffect(() => {
-    if (videoEnded && nextEpisode && autoNextEnabled) {
-      const timer = setInterval(() => {
-        setNextEpisodeTimer((prev) => {
-          if (prev <= 1) {
-            // Use setTimeout to avoid setState during render
-            setTimeout(() => {
-              onNextEpisode?.()
-            }, 0)
-            return 10
-          }
-          return prev - 1
-        })
-      }, 1000)
+  // Handle video end detection - DISABLED
+  // useEffect(() => {
+  //   if (videoEnded && nextEpisode && autoNextEnabled) {
+  //     const timer = setInterval(() => {
+  //       setNextEpisodeTimer((prev) => {
+  //         if (prev <= 1) {
+  //           // Use setTimeout to avoid setState during render
+  //           setTimeout(() => {
+  //             onNextEpisode?.()
+  //           }, 0)
+  //           return 10
+  //         }
+  //         return prev - 1
+  //       })
+  //     }, 1000)
 
-      return () => clearInterval(timer)
-    } else if (videoEnded && nextEpisode) {
-      setShowNextEpisode(true)
-    }
-  }, [videoEnded, nextEpisode, autoNextEnabled, onNextEpisode])
+  //     return () => clearInterval(timer)
+  //   } else if (videoEnded && nextEpisode) {
+  //     setShowNextEpisode(true)
+  //   }
+  // }, [videoEnded, nextEpisode, autoNextEnabled, onNextEpisode])
 
   // Listen for video end events
   useEffect(() => {
@@ -277,99 +305,64 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
             </div>
           </div>
 
-          {/* Auto-next Settings */}
-          {nextEpisode && (
-            <div className="absolute top-4 left-32 z-10">
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                onClick={() => setAutoNextEnabled(!autoNextEnabled)}
-                className={autoNextEnabled ? "bg-green-600 hover:bg-green-700" : ""}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Auto-next: {autoNextEnabled ? "ON" : "OFF"}
-              </Button>
-            </div>
-          )}
+          {/* Auto-next Settings - REMOVED */}
+          {/* No auto-next functionality */}
 
-          {/* Next Episode Popup */}
-          {showNextEpisode && nextEpisode && (
-            <div className="absolute bottom-8 right-8 z-10 max-w-md">
-              <div className="bg-black/90 backdrop-blur-md rounded-xl p-6 border border-white/30 shadow-2xl">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="relative">
-                    <img
-                      src={getTMDBImageUrl(nextEpisode.still_path || "", "w154") || "/placeholder.svg"}
-                      alt={nextEpisode.name}
-                      className="w-16 h-24 object-cover rounded-lg"
-                    />
-                    {/* TV Show thumbnail overlay */}
-                    <div className="absolute -bottom-1 -right-1">
-                      <img
-                        src={getTMDBImageUrl(tvShow.poster_path || "", "w92") || "/placeholder.svg"}
-                        alt={tvShow.name}
-                        className="w-8 h-10 object-cover rounded border-2 border-white"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-white text-lg mb-1">{nextEpisode.name}</h4>
-                    <p className="text-sm text-gray-300 mb-1">
-                      S{nextEpisode.season_number}E{nextEpisode.episode_number}
-                    </p>
-                    <p className="text-xs text-gray-400 mb-2">{tvShow.name}</p>
-                    {videoEnded && (
-                      <p className="text-sm text-yellow-400 font-semibold">Episode Finished - Ready for Next</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex gap-3">
-                  <Button 
-                    size="lg" 
-                    onClick={onNextEpisode}
-                    className="flex-1 bg-primary hover:bg-primary/90 text-base font-semibold py-3"
-                  >
-                    <ChevronRight className="h-5 w-5 mr-2" />
-                    Play Next Episode
-                  </Button>
-                  
-                  {(autoNextEnabled || videoEnded) && (
-                    <div className="flex items-center gap-2 text-sm text-gray-300 bg-gray-800/50 px-3 py-2 rounded-lg">
-                      <RotateCcw className="h-4 w-4" />
-                      {nextEpisodeTimer}s
-                    </div>
-                  )}
-                </div>
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => {
-                    setShowNextEpisode(false)
-                    setVideoEnded(false)
-                  }}
-                  className="absolute top-3 right-3 h-8 w-8 p-0 text-gray-400 hover:text-white"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+          {/* Next Episode Popup - REMOVED */}
+          {/* No automatic next episode popup */}
 
           {/* Video Player */}
-          <div className="w-full h-full flex items-center justify-center">
+          <div className="w-full h-full flex items-center justify-center relative">
             <iframe
               src={episode.embed_url}
               className="w-full h-full"
               frameBorder="0"
               allowFullScreen
-              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+              allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
               title={episode.name}
+              loading="lazy"
+              sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
+              referrerPolicy="no-referrer-when-downgrade"
               onLoad={() => {
                 console.log('Episode video loaded successfully')
               }}
+              onError={(e) => {
+                console.error('Episode failed to load:', e)
+              }}
             />
+            
+            {/* Small Episode Thumbnails at Bottom */}
+            {episodes.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+                <div className="flex gap-2 bg-black/80 backdrop-blur-sm rounded-lg p-2 max-w-md overflow-x-auto">
+                  {episodes.slice(0, 8).map((ep) => (
+                    <Link
+                      key={ep.id}
+                      href={`/tv/${tvShow.id}/episode/${ep.id}`}
+                      className={`flex-shrink-0 w-12 h-16 rounded-md overflow-hidden border-2 transition-all duration-200 hover:scale-105 ${
+                        ep.id === episode.id 
+                          ? 'border-primary shadow-lg shadow-primary/50' 
+                          : 'border-gray-600 hover:border-gray-400'
+                      }`}
+                    >
+                      <img
+                        src={getTMDBImageUrl(ep.still_path || tvShow.poster_path || "", "w92") || "/placeholder.svg"}
+                        alt={ep.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1 text-center">
+                        S{ep.season_number}E{ep.episode_number}
+                      </div>
+                    </Link>
+                  ))}
+                  {episodes.length > 8 && (
+                    <div className="flex-shrink-0 w-12 h-16 rounded-md bg-gray-800 flex items-center justify-center text-white text-xs">
+                      +{episodes.length - 8}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

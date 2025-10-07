@@ -1,11 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { MovieActionButtons } from "@/components/movie-action-buttons"
 import { LoadingSpinner } from "@/components/ui/loading"
 import { getTMDBImageUrl } from "@/lib/tmdb"
+import { isMobile } from "@/lib/mobile-utils"
+import { createAdBlockerBypass, reloadIframe, isIframeBlocked } from "@/lib/adblocker-bypass"
 import type { Movie } from "@/lib/types"
 import { Play, X, Volume2, VolumeX, Maximize, Minimize, ChevronRight, Settings, RotateCcw } from "lucide-react"
 
@@ -21,19 +23,19 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
   const [isMuted, setIsMuted] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [showNextMovie, setShowNextMovie] = useState(false)
-  const [autoNextEnabled, setAutoNextEnabled] = useState(false)
+  const [autoNextEnabled, setAutoNextEnabled] = useState(false) // Disabled by default
   const [nextMovieTimer, setNextMovieTimer] = useState(10)
   const [videoEnded, setVideoEnded] = useState(false)
+  const [isMobileDevice, setIsMobileDevice] = useState(false)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   const backdropUrl = getTMDBImageUrl(movie.backdrop_path || "", "original")
   const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : ""
 
-  // Simple mobile detection without hooks
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
-
   // Handle client-side mounting
   useEffect(() => {
     setMounted(true)
+    setIsMobileDevice(isMobile())
   }, [])
 
   const handlePlay = () => {
@@ -46,58 +48,58 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
     setShowNextMovie(false)
   }
 
-  // Auto-next functionality
-  useEffect(() => {
-    if (isPlaying && nextMovie && autoNextEnabled) {
-      const timer = setInterval(() => {
-        setNextMovieTimer((prev) => {
-          if (prev <= 1) {
-            // Use setTimeout to avoid setState during render
-            setTimeout(() => {
-              onNextMovie?.()
-            }, 0)
-            return 10
-          }
-          return prev - 1
-        })
-      }, 1000)
+  // Auto-next functionality - DISABLED
+  // useEffect(() => {
+  //   if (isPlaying && nextMovie && autoNextEnabled) {
+  //     const timer = setInterval(() => {
+  //       setNextMovieTimer((prev) => {
+  //         if (prev <= 1) {
+  //           // Use setTimeout to avoid setState during render
+  //           setTimeout(() => {
+  //             onNextMovie?.()
+  //           }, 0)
+  //           return 10
+  //         }
+  //         return prev - 1
+  //       })
+  //     }, 1000)
 
-      return () => clearInterval(timer)
-    }
-  }, [isPlaying, nextMovie, autoNextEnabled, onNextMovie])
+  //     return () => clearInterval(timer)
+  //   }
+  // }, [isPlaying, nextMovie, autoNextEnabled, onNextMovie])
 
-  // Show next movie after 5 minutes
-  useEffect(() => {
-    if (isPlaying && nextMovie) {
-      const timer = setTimeout(() => {
-        setShowNextMovie(true)
-      }, 5 * 60 * 1000) // 5 minutes
+  // Show next movie after 5 minutes - DISABLED
+  // useEffect(() => {
+  //   if (isPlaying && nextMovie) {
+  //     const timer = setTimeout(() => {
+  //       setShowNextMovie(true)
+  //     }, 5 * 60 * 1000) // 5 minutes
 
-      return () => clearTimeout(timer)
-    }
-  }, [isPlaying, nextMovie])
+  //     return () => clearTimeout(timer)
+  //   }
+  // }, [isPlaying, nextMovie])
 
-  // Handle video end detection
-  useEffect(() => {
-    if (videoEnded && nextMovie && autoNextEnabled) {
-      const timer = setInterval(() => {
-        setNextMovieTimer((prev) => {
-          if (prev <= 1) {
-            // Use setTimeout to avoid setState during render
-            setTimeout(() => {
-              onNextMovie?.()
-            }, 0)
-            return 10
-          }
-          return prev - 1
-        })
-      }, 1000)
+  // Handle video end detection - DISABLED
+  // useEffect(() => {
+  //   if (videoEnded && nextMovie && autoNextEnabled) {
+  //     const timer = setInterval(() => {
+  //       setNextMovieTimer((prev) => {
+  //         if (prev <= 1) {
+  //           // Use setTimeout to avoid setState during render
+  //           setTimeout(() => {
+  //             onNextMovie?.()
+  //           }, 0)
+  //           return 10
+  //         }
+  //         return prev - 1
+  //       })
+  //     }, 1000)
 
-      return () => clearInterval(timer)
-    } else if (videoEnded && nextMovie) {
-      setShowNextMovie(true)
-    }
-  }, [videoEnded, nextMovie, autoNextEnabled, onNextMovie])
+  //     return () => clearInterval(timer)
+  //   } else if (videoEnded && nextMovie) {
+  //     setShowNextMovie(true)
+  //   }
+  // }, [videoEnded, nextMovie, autoNextEnabled, onNextMovie])
 
   // Listen for video end events
   useEffect(() => {
@@ -199,86 +201,51 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
             </Button>
           </div>
 
-          {/* Auto-next Settings */}
-          {nextMovie && (
-            <div className="absolute top-4 left-4 z-10">
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                onClick={() => setAutoNextEnabled(!autoNextEnabled)}
-                className={autoNextEnabled ? "bg-green-600 hover:bg-green-700" : ""}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Auto-next: {autoNextEnabled ? "ON" : "OFF"}
-              </Button>
-            </div>
-          )}
+          {/* Auto-next Settings - REMOVED */}
+          {/* No auto-next functionality */}
 
-          {/* Next Movie Popup */}
-          {showNextMovie && nextMovie && (
-            <div className="absolute bottom-8 right-8 z-10 max-w-md">
-              <div className="bg-black/90 backdrop-blur-md rounded-xl p-6 border border-white/30 shadow-2xl">
-                <div className="flex items-center gap-4 mb-4">
-                  <img
-                    src={getTMDBImageUrl(nextMovie.poster_path || "", "w154") || "/placeholder.svg"}
-                    alt={nextMovie.title}
-                    className="w-16 h-24 object-cover rounded-lg"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-white text-lg mb-1">{nextMovie.title}</h4>
-                    <p className="text-sm text-gray-300 mb-2">
-                      {nextMovie.release_date ? new Date(nextMovie.release_date).getFullYear() : ""}
-                    </p>
-                    {videoEnded && (
-                      <p className="text-sm text-yellow-400 font-semibold">Video Finished - Ready for Next</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex gap-3">
-                  <Button 
-                    size="lg" 
-                    onClick={onNextMovie}
-                    className="flex-1 bg-primary hover:bg-primary/90 text-base font-semibold py-3"
-                  >
-                    <ChevronRight className="h-5 w-5 mr-2" />
-                    Play Next Movie
-                  </Button>
-                  
-                  {(autoNextEnabled || videoEnded) && (
-                    <div className="flex items-center gap-2 text-sm text-gray-300 bg-gray-800/50 px-3 py-2 rounded-lg">
-                      <RotateCcw className="h-4 w-4" />
-                      {nextMovieTimer}s
-                    </div>
-                  )}
-                </div>
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => {
-                    setShowNextMovie(false)
-                    setVideoEnded(false)
-                  }}
-                  className="absolute top-3 right-3 h-8 w-8 p-0 text-gray-400 hover:text-white"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+          {/* Next Movie Popup - REMOVED */}
+          {/* No automatic next movie popup */}
 
           {/* Video Player */}
           <div className="w-full h-full flex items-center justify-center">
             <iframe
+              ref={iframeRef}
               src={movie.embed_url}
-              className="w-full h-full"
+              className="w-full h-full video-player-iframe"
               frameBorder="0"
               allowFullScreen
-              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+              allow={isMobileDevice ? "autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope" : "autoplay; encrypted-media; fullscreen; picture-in-picture"}
               title={movie.title}
+              loading="lazy"
+              sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
+              referrerPolicy="no-referrer-when-downgrade"
+              data-src={movie.embed_url}
+              data-adblock-bypass="true"
+              style={{
+                border: 'none',
+                outline: 'none',
+                ...(isMobileDevice && {
+                  width: '100vw',
+                  height: '100vh',
+                  maxWidth: '100%',
+                  maxHeight: '100%'
+                })
+              }}
               onLoad={() => {
                 console.log('Video loaded successfully')
+                // Check if blocked and reload if necessary
+                if (iframeRef.current && isIframeBlocked(iframeRef.current)) {
+                  console.log('Iframe blocked, attempting reload...')
+                  reloadIframe(iframeRef.current)
+                }
+              }}
+              onError={(e) => {
+                console.error('Video failed to load:', e)
+                // Try to reload iframe
+                if (iframeRef.current) {
+                  reloadIframe(iframeRef.current)
+                }
               }}
             />
           </div>
