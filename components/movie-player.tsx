@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { MovieActionButtons } from "@/components/movie-action-buttons"
 import { LoadingSpinner } from "@/components/ui/loading"
+import { MobileVideoPlayer } from "@/components/mobile-video-player"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import { isMobile } from "@/lib/mobile-utils"
 import { createAdBlockerBypass, reloadIframe, isIframeBlocked } from "@/lib/adblocker-bypass"
@@ -27,6 +28,7 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
   const [nextMovieTimer, setNextMovieTimer] = useState(10)
   const [videoEnded, setVideoEnded] = useState(false)
   const [isMobileDevice, setIsMobileDevice] = useState(false)
+  const [showMobilePlayer, setShowMobilePlayer] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   const backdropUrl = getTMDBImageUrl(movie.backdrop_path || "", "original")
@@ -39,7 +41,11 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
   }, [])
 
   const handlePlay = () => {
-    setIsPlaying(true)
+    if (isMobileDevice) {
+      setShowMobilePlayer(true)
+    } else {
+      setIsPlaying(true)
+    }
   }
 
   const handleClose = () => {
@@ -218,7 +224,6 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
               allow={isMobileDevice ? "autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope" : "autoplay; encrypted-media; fullscreen; picture-in-picture"}
               title={movie.title}
               loading="lazy"
-              sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
               referrerPolicy="no-referrer-when-downgrade"
               data-src={movie.embed_url}
               data-adblock-bypass="true"
@@ -250,6 +255,16 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
             />
           </div>
         </div>
+      )}
+      
+      {/* Mobile Video Player */}
+      {showMobilePlayer && (
+        <MobileVideoPlayer
+          src={movie.embed_url}
+          title={movie.title}
+          poster={backdropUrl}
+          onClose={() => setShowMobilePlayer(false)}
+        />
       )}
     </div>
   )

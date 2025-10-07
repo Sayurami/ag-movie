@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { LoadingSpinner } from "@/components/ui/loading"
+import { MobileVideoPlayer } from "@/components/mobile-video-player"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { Episode, TVShow } from "@/lib/types"
 import { Play, X, Volume2, VolumeX, Maximize, Minimize, ArrowLeft, Calendar, Clock, Download, ExternalLink, ChevronRight, Settings, RotateCcw } from "lucide-react"
@@ -29,16 +30,26 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
   const [videoEnded, setVideoEnded] = useState(false)
   const [episodes, setEpisodes] = useState<Episode[]>([])
   const [loadingEpisodes, setLoadingEpisodes] = useState(false)
+  const [isMobileDevice, setIsMobileDevice] = useState(false)
+  const [showMobilePlayer, setShowMobilePlayer] = useState(false)
 
   // Handle client-side mounting
   useEffect(() => {
     setMounted(true)
+    setIsMobileDevice(typeof window !== 'undefined' && window.innerWidth < 768)
     fetchEpisodes()
   }, [])
 
   const fetchEpisodes = async () => {
     try {
       setLoadingEpisodes(true)
+      
+      // Only fetch on client-side
+      if (typeof window === 'undefined') {
+        setLoadingEpisodes(false)
+        return
+      }
+      
       const supabase = createClient()
       const { data, error } = await supabase
         .from("episodes")
@@ -61,7 +72,11 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
   }
 
   const handlePlay = () => {
-    setIsPlaying(true)
+    if (isMobileDevice) {
+      setShowMobilePlayer(true)
+    } else {
+      setIsPlaying(true)
+    }
   }
 
   const handleClose = () => {
@@ -321,7 +336,6 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
               allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
               title={episode.name}
               loading="lazy"
-              sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
               referrerPolicy="no-referrer-when-downgrade"
               onLoad={() => {
                 console.log('Episode video loaded successfully')
@@ -365,6 +379,16 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
             )}
           </div>
         </div>
+      )}
+      
+      {/* Mobile Video Player */}
+      {showMobilePlayer && (
+        <MobileVideoPlayer
+          src={episode.embed_url}
+          title={episode.name}
+          poster={getTMDBImageUrl(episode.still_path || tvShow.poster_path || "", "w780")}
+          onClose={() => setShowMobilePlayer(false)}
+        />
       )}
     </div>
   )

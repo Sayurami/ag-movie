@@ -9,24 +9,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Remove debugger statements in production
-  webpack: (config, { dev, isServer }) => {
-    if (!dev && !isServer) {
-      // Remove debugger statements in production builds
-      config.optimization.minimizer = config.optimization.minimizer || []
-      config.optimization.minimizer.push(
-        new (require('terser-webpack-plugin'))({
-          terserOptions: {
-            compress: {
-              drop_console: true,
-              drop_debugger: true,
-            },
-          },
-        })
-      )
-    }
-    return config
-  },
   async headers() {
     return [
       {
