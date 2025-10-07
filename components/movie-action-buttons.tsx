@@ -43,7 +43,7 @@ export function MovieActionButtons({ movie, onPlay, onLike, isLiked = false }: M
         <Button 
           size="lg" 
           onClick={onPlay} 
-          className="text-lg sm:text-xl px-6 sm:px-8 lg:px-12 py-3 sm:py-4 lg:py-6 hover-lift animate-pulse-hover bg-primary hover:bg-primary/90 w-full sm:w-auto"
+          className="text-lg sm:text-xl px-6 sm:px-8 lg:px-12 py-3 sm:py-4 lg:py-6 hover-lift animate-play-button bg-primary hover:bg-primary/90 w-full sm:w-auto btn-primary-animated"
         >
           <Play className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3" />
           Play Movie

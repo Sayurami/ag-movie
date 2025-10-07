@@ -56,14 +56,14 @@ export function MovieDetails({ movie }: MovieDetailsProps) {
   }, [movie.id, movie.parent_movie_id, movie.part_number])
 
   // Debug logging
-  console.log("Movie Details Debug:", {
-    title: movie.title,
-    download_url: movie.download_url,
-    hasDownloadUrl: !!movie.download_url,
-    part_number: movie.part_number,
-    parent_movie_id: movie.parent_movie_id,
-    movieParts: movieParts.length
-  })
+  // console.log("Movie Details Debug:", {
+  //   title: movie.title,
+  //   download_url: movie.download_url,
+  //   hasDownloadUrl: !!movie.download_url,
+  //   part_number: movie.part_number,
+  //   parent_movie_id: movie.parent_movie_id,
+  //   movieParts: movieParts.length
+  // })
 
   const handleLikeToggle = () => {
     setIsLiked(!isLiked)

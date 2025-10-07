@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
-import { EpisodePlayer } from "@/components/episode-player"
+import { EpisodePlayerWrapper } from "@/components/episode-player-wrapper"
 import { createClient } from "@/lib/supabase/server"
 
 interface EpisodePageProps {
@@ -31,22 +31,15 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
     .eq("episode_number", episode.episode_number + 1)
     .single()
 
-  const handleNextEpisode = () => {
-    if (nextEpisode) {
-      window.location.href = `/tv/${id}/episode/${nextEpisode.id}`
-    }
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
 
       <main className="pt-16">
-        <EpisodePlayer 
+        <EpisodePlayerWrapper 
           episode={episode} 
           tvShow={tvShow} 
-          nextEpisode={nextEpisode || undefined}
-          onNextEpisode={handleNextEpisode}
+          nextEpisode={nextEpisode || null}
         />
       </main>
 

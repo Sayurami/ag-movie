@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { RedirectBack } from "@/components/redirect-back"
+import { LoadingSpinner } from "@/components/ui/loading"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { Episode, TVShow } from "@/lib/types"
 import { Play, X, Volume2, VolumeX, Maximize, Minimize, ArrowLeft, Calendar, Clock, Download, ExternalLink, ChevronRight, Settings, RotateCcw } from "lucide-react"
@@ -21,10 +21,16 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
   const [isPlaying, setIsPlaying] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const [showNextEpisode, setShowNextEpisode] = useState(false)
   const [autoNextEnabled, setAutoNextEnabled] = useState(false)
   const [nextEpisodeTimer, setNextEpisodeTimer] = useState(10)
   const [videoEnded, setVideoEnded] = useState(false)
+
+  // Handle client-side mounting
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handlePlay = () => {
     setIsPlaying(true)
@@ -32,6 +38,8 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
 
   const handleClose = () => {
     setIsPlaying(false)
+    setVideoEnded(false)
+    setShowNextEpisode(false)
   }
 
   // Auto-next functionality
@@ -40,7 +48,10 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
       const timer = setInterval(() => {
         setNextEpisodeTimer((prev) => {
           if (prev <= 1) {
-            onNextEpisode?.()
+            // Use setTimeout to avoid setState during render
+            setTimeout(() => {
+              onNextEpisode?.()
+            }, 0)
             return 10
           }
           return prev - 1
@@ -51,7 +62,7 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
     }
   }, [isPlaying, nextEpisode, autoNextEnabled, onNextEpisode])
 
-  // Show next episode hover after 5 minutes of playing
+  // Show next episode after 5 minutes
   useEffect(() => {
     if (isPlaying && nextEpisode) {
       const timer = setTimeout(() => {
@@ -62,14 +73,16 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
     }
   }, [isPlaying, nextEpisode])
 
-  // Handle video end detection and automatic redirect
+  // Handle video end detection
   useEffect(() => {
     if (videoEnded && nextEpisode && autoNextEnabled) {
-      // Start countdown for automatic redirect
       const timer = setInterval(() => {
         setNextEpisodeTimer((prev) => {
           if (prev <= 1) {
-            onNextEpisode?.()
+            // Use setTimeout to avoid setState during render
+            setTimeout(() => {
+              onNextEpisode?.()
+            }, 0)
             return 10
           }
           return prev - 1
@@ -78,7 +91,6 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
 
       return () => clearInterval(timer)
     } else if (videoEnded && nextEpisode) {
-      // Show next episode card when video ends
       setShowNextEpisode(true)
     }
   }, [videoEnded, nextEpisode, autoNextEnabled, onNextEpisode])
@@ -93,7 +105,6 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
             setVideoEnded(true)
           }
         } catch (e) {
-          // Handle non-JSON messages
           if (event.data.includes('ended') || event.data.includes('complete')) {
             setVideoEnded(true)
           }
@@ -105,150 +116,133 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
     return () => window.removeEventListener('message', handleMessage)
   }, [])
 
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="text-center space-y-4">
+          <LoadingSpinner size="lg" className="text-white" />
+          <div className="text-white text-lg animate-fade-in">Loading Episode...</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen">
-      {/* Redirect back system - only active when episode is playing */}
-      {isPlaying && (
-        <RedirectBack 
-          redirectDelay={5} // 5 seconds delay
-          redirectUrl={`/tv/${tvShow.id}/episode/${episode.id}`} // Redirect back to episode page
-        />
-      )}
-      
       {!isPlaying ? (
-        // Episode Details with Play Button
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-6">
-            <Button asChild variant="outline">
-              <Link href={`/tv/${tvShow.id}`}>
+        // Episode Info with Play Button
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 md:p-6">
+            <Link href={`/tv/${tvShow.id}`}>
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to {tvShow.name}
-              </Link>
-            </Button>
+              </Button>
+            </Link>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Episode Still/Poster */}
-            <div className="lg:col-span-1">
-              <div className="relative">
-                <img
-                  src={getTMDBImageUrl(episode.still_path, "w500") || "/placeholder.svg?height=300&width=500"}
-                  alt={episode.name}
-                  className="w-full rounded-lg shadow-lg"
-                />
-                <div 
-                  className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-lg"
-                  style={{
-                    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${getTMDBImageUrl(tvShow.poster_path, "w500")})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat'
-                  }}
-                >
-                  <div className="flex flex-col sm:flex-row gap-4 items-center">
-                    <Button size="lg" onClick={handlePlay} className="text-xl px-8 py-4 bg-primary/90 hover:bg-primary backdrop-blur-sm">
-                      <Play className="h-6 w-6 mr-3" />
-                      Play Episode
-                    </Button>
-                    
-                    {episode.download_url && (
-                      <Button size="lg" variant="outline" asChild className="text-xl px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm border-white/30 text-white">
-                        <a href={episode.download_url} target="_blank" rel="noopener noreferrer">
-                          <Download className="h-6 w-6 mr-3" />
-                          Download
-                        </a>
-                      </Button>
+          {/* Episode Content */}
+          <div className="container mx-auto px-4 md:px-6 py-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* TV Show Thumbnail */}
+              <div className="lg:col-span-1">
+                <div className="relative">
+                  <img
+                    src={getTMDBImageUrl(tvShow.backdrop_path || tvShow.poster_path || "", "w780") || "/placeholder.svg"}
+                    alt={tvShow.name}
+                    className="w-full h-64 md:h-80 object-cover rounded-lg shadow-2xl animate-fade-in"
+                  />
+                  <div className="absolute inset-0 bg-black/20 rounded-lg" />
+                  
+                  {/* Episode Info Overlay - Only show if episode has a still image */}
+                  {episode.still_path && (
+                    <div className="absolute top-4 left-4">
+                      <div className="flex items-center gap-3 bg-black/80 backdrop-blur-sm rounded-lg p-3 animate-slide-in-left">
+                        <img
+                          src={getTMDBImageUrl(episode.still_path, "w92")}
+                          alt={episode.name}
+                          className="w-12 h-16 object-cover rounded-md hover-scale"
+                        />
+                        <div className="text-white">
+                          <h3 className="font-semibold text-sm truncate max-w-32">{episode.name}</h3>
+                          <p className="text-xs text-gray-300">S{episode.season_number}E{episode.episode_number}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Episode Details */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* TV Show Info */}
+                <div className="flex items-center gap-4 mb-6 animate-stagger-2">
+                  <img
+                    src={getTMDBImageUrl(tvShow.poster_path || "", "w154") || "/placeholder.svg"}
+                    alt={tvShow.name}
+                    className="w-16 h-20 object-cover rounded-lg shadow-lg hover-scale"
+                  />
+                  <div>
+                    <Link href={`/tv/${tvShow.id}`} className="hover:text-primary transition-colors">
+                      <h2 className="text-xl font-bold text-white hover:text-primary">{tvShow.name}</h2>
+                    </Link>
+                    <p className="text-gray-400 text-sm">
+                      {tvShow.first_air_date ? new Date(tvShow.first_air_date).getFullYear() : ""}
+                      {tvShow.vote_average && ` • ★ ${tvShow.vote_average.toFixed(1)}`}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 animate-hero-text">
+                    {episode.name}
+                  </h1>
+                  <div className="flex items-center gap-4 mb-4 flex-wrap animate-stagger-3">
+                    <Badge variant="secondary" className="text-sm hover-scale">
+                      S{episode.season_number}E{episode.episode_number}
+                    </Badge>
+                    {episode.air_date && (
+                      <Badge variant="outline" className="text-sm hover-scale">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {new Date(episode.air_date).toLocaleDateString()}
+                      </Badge>
+                    )}
+                    {episode.runtime && (
+                      <Badge variant="outline" className="text-sm hover-scale">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {episode.runtime}min
+                      </Badge>
                     )}
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Episode Information */}
-            <div className="lg:col-span-2 space-y-6">
-              <div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">
-                  S{episode.season_number}E{episode.episode_number}: {episode.name}
-                </h1>
-                <h2 className="text-xl text-muted-foreground mb-4">{tvShow.name}</h2>
+                {episode.overview && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Overview</h3>
+                    <p className="text-gray-300 leading-relaxed">{episode.overview}</p>
+                  </div>
+                )}
 
-                <div className="flex flex-wrap items-center gap-4 mb-4">
-                  {episode.vote_average && (
-                    <Badge variant="secondary" className="text-sm">
-                      ★ {episode.vote_average.toFixed(1)}
-                    </Badge>
-                  )}
-                  {episode.air_date && (
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      {new Date(episode.air_date).toLocaleDateString()}
-                    </div>
-                  )}
-                  {episode.runtime && (
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      {episode.runtime}min
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Overview */}
-              <div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">Episode Overview</h3>
-                <p className="text-muted-foreground leading-relaxed mb-4">{episode.overview}</p>
-                
                 {/* Action Buttons */}
-                <div className="flex flex-wrap gap-3">
-                  {episode.download_url && (
-                    <Button asChild variant="outline">
-                      <a href={episode.download_url} target="_blank" rel="noopener noreferrer">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download Episode
-                      </a>
+                <div className="flex gap-4 flex-wrap animate-stagger-4">
+                  <Button 
+                    size="lg" 
+                    onClick={handlePlay}
+                    className="bg-primary hover:bg-primary/90 text-lg font-semibold px-8 py-3 hover-lift btn-primary-animated animate-play-button"
+                  >
+                    <Play className="h-5 w-5 mr-2" />
+                    Play Episode
+                  </Button>
+                  
+                  {episode.download_links && episode.download_links.length > 0 && (
+                    <Button variant="outline" size="lg" className="text-white border-white hover:bg-white hover:text-black hover-lift">
+                      <Download className="h-5 w-5 mr-2" />
+                      Download
                     </Button>
                   )}
                 </div>
               </div>
-
-              {/* Episode Details Card */}
-              <Card>
-                <CardContent className="p-6">
-                  <h4 className="text-lg font-semibold text-foreground mb-4">Episode Details</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Season:</span>
-                      <span className="ml-2 text-foreground">{episode.season_number}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Episode:</span>
-                      <span className="ml-2 text-foreground">{episode.episode_number}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Air Date:</span>
-                      <span className="ml-2 text-foreground">
-                        {episode.air_date ? new Date(episode.air_date).toLocaleDateString() : "Unknown"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Runtime:</span>
-                      <span className="ml-2 text-foreground">
-                        {episode.runtime ? `${episode.runtime} minutes` : "Unknown"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Rating:</span>
-                      <span className="ml-2 text-foreground">
-                        {episode.vote_average ? `${episode.vote_average}/10` : "Not rated"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">TMDB ID:</span>
-                      <span className="ml-2 text-foreground">{episode.tmdb_id}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
         </div>
@@ -268,17 +262,24 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
             </Button>
           </div>
 
-          {/* Episode Info Overlay */}
-          <div className="absolute top-4 left-4 z-10 bg-black/80 rounded-lg p-3">
-            <h3 className="text-white font-semibold">
-              {tvShow.name} - S{episode.season_number}E{episode.episode_number}
-            </h3>
-            <p className="text-white/80 text-sm">{episode.name}</p>
+          {/* TV Show Info Overlay */}
+          <div className="absolute top-4 left-4 z-10">
+            <div className="flex items-center gap-3 bg-black/80 backdrop-blur-sm rounded-lg p-3 animate-slide-in-left">
+              <img
+                src={getTMDBImageUrl(tvShow.poster_path || "", "w154") || "/placeholder.svg"}
+                alt={tvShow.name}
+                className="w-10 h-12 object-cover rounded-md hover-scale"
+              />
+              <div className="text-white">
+                <h3 className="font-semibold text-sm truncate max-w-24">{tvShow.name}</h3>
+                <p className="text-xs text-gray-300">S{episode.season_number}E{episode.episode_number}</p>
+              </div>
+            </div>
           </div>
 
           {/* Auto-next Settings */}
           {nextEpisode && (
-            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
+            <div className="absolute top-4 left-32 z-10">
               <Button 
                 variant="secondary" 
                 size="sm" 
@@ -291,40 +292,51 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
             </div>
           )}
 
-          {/* Next Episode Hover */}
+          {/* Next Episode Popup */}
           {showNextEpisode && nextEpisode && (
-            <div className="absolute bottom-4 right-4 z-10 max-w-sm">
-              <div className="bg-black/80 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-                <div className="flex items-center gap-3 mb-3">
-                  <img
-                    src={getTMDBImageUrl(nextEpisode.still_path || "", "w92") || "/placeholder.svg"}
-                    alt={nextEpisode.name}
-                    className="w-12 h-16 object-cover rounded"
-                  />
+            <div className="absolute bottom-8 right-8 z-10 max-w-md">
+              <div className="bg-black/90 backdrop-blur-md rounded-xl p-6 border border-white/30 shadow-2xl">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="relative">
+                    <img
+                      src={getTMDBImageUrl(nextEpisode.still_path || "", "w154") || "/placeholder.svg"}
+                      alt={nextEpisode.name}
+                      className="w-16 h-24 object-cover rounded-lg"
+                    />
+                    {/* TV Show thumbnail overlay */}
+                    <div className="absolute -bottom-1 -right-1">
+                      <img
+                        src={getTMDBImageUrl(tvShow.poster_path || "", "w92") || "/placeholder.svg"}
+                        alt={tvShow.name}
+                        className="w-8 h-10 object-cover rounded border-2 border-white"
+                      />
+                    </div>
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-white text-sm truncate">{nextEpisode.name}</h4>
-                    <p className="text-xs text-gray-300">
+                    <h4 className="font-bold text-white text-lg mb-1">{nextEpisode.name}</h4>
+                    <p className="text-sm text-gray-300 mb-1">
                       S{nextEpisode.season_number}E{nextEpisode.episode_number}
                     </p>
+                    <p className="text-xs text-gray-400 mb-2">{tvShow.name}</p>
                     {videoEnded && (
-                      <p className="text-xs text-yellow-400 font-medium">Episode Finished</p>
+                      <p className="text-sm text-yellow-400 font-semibold">Episode Finished - Ready for Next</p>
                     )}
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <Button 
-                    size="sm" 
+                    size="lg" 
                     onClick={onNextEpisode}
-                    className="flex-1 bg-primary hover:bg-primary/90"
+                    className="flex-1 bg-primary hover:bg-primary/90 text-base font-semibold py-3"
                   >
-                    <ChevronRight className="h-4 w-4 mr-2" />
-                    Play Next
+                    <ChevronRight className="h-5 w-5 mr-2" />
+                    Play Next Episode
                   </Button>
                   
                   {(autoNextEnabled || videoEnded) && (
-                    <div className="flex items-center gap-2 text-xs text-gray-300">
-                      <RotateCcw className="h-3 w-3" />
+                    <div className="flex items-center gap-2 text-sm text-gray-300 bg-gray-800/50 px-3 py-2 rounded-lg">
+                      <RotateCcw className="h-4 w-4" />
                       {nextEpisodeTimer}s
                     </div>
                   )}
@@ -337,39 +349,26 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
                     setShowNextEpisode(false)
                     setVideoEnded(false)
                   }}
-                  className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-400 hover:text-white"
+                  className="absolute top-3 right-3 h-8 w-8 p-0 text-gray-400 hover:text-white"
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Manual Video End Button for Testing */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="absolute bottom-4 left-4 z-10">
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                onClick={() => setVideoEnded(true)}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                Test Episode End
-              </Button>
-            </div>
-          )}
-
-          {/* Embedded Video Player */}
+          {/* Video Player */}
           <div className="w-full h-full flex items-center justify-center">
             <iframe
               src={episode.embed_url}
               className="w-full h-full"
               frameBorder="0"
-              marginWidth={0}
-              marginHeight={0}
-              scrolling="no"
               allowFullScreen
-              title={`${tvShow.name} - ${episode.name}`}
+              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+              title={episode.name}
+              onLoad={() => {
+                console.log('Episode video loaded successfully')
+              }}
             />
           </div>
         </div>

@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { RedirectBack } from "@/components/redirect-back"
 import { MovieActionButtons } from "@/components/movie-action-buttons"
+import { LoadingSpinner } from "@/components/ui/loading"
 import { getTMDBImageUrl } from "@/lib/tmdb"
 import type { Movie } from "@/lib/types"
 import { Play, X, Volume2, VolumeX, Maximize, Minimize, ChevronRight, Settings, RotateCcw } from "lucide-react"
@@ -19,69 +19,43 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
-  const [isTrailerPlaying, setIsTrailerPlaying] = useState(true)
   const [mounted, setMounted] = useState(false)
-  const [videoLoaded, setVideoLoaded] = useState(false)
-  const [showNextEpisode, setShowNextEpisode] = useState(false)
+  const [showNextMovie, setShowNextMovie] = useState(false)
   const [autoNextEnabled, setAutoNextEnabled] = useState(false)
-  const [nextEpisodeTimer, setNextEpisodeTimer] = useState(10)
+  const [nextMovieTimer, setNextMovieTimer] = useState(10)
   const [videoEnded, setVideoEnded] = useState(false)
 
   const backdropUrl = getTMDBImageUrl(movie.backdrop_path || "", "original")
   const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : ""
 
-  // Convert YouTube URL to embed format with minimal UI
-  const getYouTubeEmbedUrl = (url: string) => {
-    if (!url || !mounted) return ""
-    const videoId = url.includes('youtube.com/watch?v=') 
-      ? url.split('v=')[1]?.split('&')[0]
-      : url.includes('youtu.be/')
-      ? url.split('/').pop()?.split('?')[0]
-      : null
-    
-    if (videoId) {
-      const origin = typeof window !== 'undefined' ? window.location.origin : ''
-      return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&cc_load_policy=0&iv_load_policy=3&disablekb=1&fs=0&start=0&enablejsapi=1&playsinline=1&widget_referrer=null&origin=${origin}`
-    }
-    return ""
-  }
+  // Simple mobile detection without hooks
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
 
-  const trailerEmbedUrl = movie.trailer_url ? getYouTubeEmbedUrl(movie.trailer_url) : ""
-
-  // Debug log to check trailer data
+  // Handle client-side mounting
   useEffect(() => {
-    if (movie.trailer_url) {
-      console.log("Trailer URL:", movie.trailer_url)
-      console.log("Embed URL:", trailerEmbedUrl)
-    } else {
-      console.log("No trailer URL available for movie:", movie.title)
-    }
-  }, [movie.trailer_url, trailerEmbedUrl, movie.title])
+    setMounted(true)
+  }, [])
 
   const handlePlay = () => {
     setIsPlaying(true)
-    setIsTrailerPlaying(false) // Stop trailer when main movie starts
-    setVideoLoaded(false) // Reset video loaded state
   }
 
   const handleClose = () => {
     setIsPlaying(false)
-    setIsTrailerPlaying(true) // Resume trailer when movie stops
-    setVideoLoaded(false) // Reset video loaded state
+    setVideoEnded(false)
+    setShowNextMovie(false)
   }
-
-  // Handle client-side mounting to prevent hydration issues
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   // Auto-next functionality
   useEffect(() => {
     if (isPlaying && nextMovie && autoNextEnabled) {
       const timer = setInterval(() => {
-        setNextEpisodeTimer((prev) => {
+        setNextMovieTimer((prev) => {
           if (prev <= 1) {
-            onNextMovie?.()
+            // Use setTimeout to avoid setState during render
+            setTimeout(() => {
+              onNextMovie?.()
+            }, 0)
             return 10
           }
           return prev - 1
@@ -92,25 +66,27 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
     }
   }, [isPlaying, nextMovie, autoNextEnabled, onNextMovie])
 
-  // Show next episode hover after 5 minutes of playing
+  // Show next movie after 5 minutes
   useEffect(() => {
     if (isPlaying && nextMovie) {
       const timer = setTimeout(() => {
-        setShowNextEpisode(true)
+        setShowNextMovie(true)
       }, 5 * 60 * 1000) // 5 minutes
 
       return () => clearTimeout(timer)
     }
   }, [isPlaying, nextMovie])
 
-  // Handle video end detection and automatic redirect
+  // Handle video end detection
   useEffect(() => {
     if (videoEnded && nextMovie && autoNextEnabled) {
-      // Start countdown for automatic redirect
       const timer = setInterval(() => {
-        setNextEpisodeTimer((prev) => {
+        setNextMovieTimer((prev) => {
           if (prev <= 1) {
-            onNextMovie?.()
+            // Use setTimeout to avoid setState during render
+            setTimeout(() => {
+              onNextMovie?.()
+            }, 0)
             return 10
           }
           return prev - 1
@@ -119,8 +95,7 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
 
       return () => clearInterval(timer)
     } else if (videoEnded && nextMovie) {
-      // Show next episode card when video ends
-      setShowNextEpisode(true)
+      setShowNextMovie(true)
     }
   }, [videoEnded, nextMovie, autoNextEnabled, onNextMovie])
 
@@ -134,7 +109,6 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
             setVideoEnded(true)
           }
         } catch (e) {
-          // Handle non-JSON messages
           if (event.data.includes('ended') || event.data.includes('complete')) {
             setVideoEnded(true)
           }
@@ -147,80 +121,59 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
   }, [])
 
   const handleLike = () => {
-    // TODO: Implement like functionality
     console.log("Liked movie:", movie.title)
+  }
+
+  if (!mounted) {
+    return (
+      <div className="relative h-screen flex items-center justify-center bg-black">
+        <div className="text-center space-y-4">
+          <LoadingSpinner size="lg" className="text-white" />
+          <div className="text-white text-lg animate-fade-in">Loading Movie...</div>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="relative">
-      {/* Redirect back system - only active when movie is playing */}
-      {isPlaying && (
-        <RedirectBack 
-          redirectDelay={5} // 5 seconds delay
-          redirectUrl={`/movie/${movie.id}`} // Redirect back to movie page
-        />
-      )}
-      
       {!isPlaying ? (
-        // Movie Trailer Background with Play Button
+        // Movie Background with Play Button
         <div className="relative h-screen flex items-center justify-center">
-          {/* Background thumbnail - always visible as loader */}
+          {/* Background Image */}
           <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000"
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in"
             style={{
               backgroundImage: `url(${backdropUrl})`,
-              opacity: trailerEmbedUrl && isTrailerPlaying ? (videoLoaded ? 0.3 : 1) : 1,
             }}
           />
-
-          {/* YouTube trailer embed - hidden until loaded */}
-          {trailerEmbedUrl && isTrailerPlaying && mounted && (
-            <iframe
-              className="absolute inset-0 w-full h-full transition-opacity duration-1000"
-              src={trailerEmbedUrl}
-              frameBorder="0"
-              allow="autoplay; encrypted-media"
-              allowFullScreen
-              title={`${movie.title} Trailer`}
-              style={{
-                opacity: videoLoaded ? 1 : 0,
-              }}
-              onLoad={() => {
-                // Video loaded, start fade transition
-                setTimeout(() => setVideoLoaded(true), 500)
-              }}
-              onError={() => {
-                // Fallback to backdrop image if trailer fails to load
-                setIsTrailerPlaying(false)
-                setVideoLoaded(true)
-              }}
-            />
-          )}
 
           {/* Overlay */}
           <div className="absolute inset-0 bg-black/50" />
 
-
-          <div className="relative z-10 text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 animate-fade-in animate-stagger-1">{movie.title}</h1>
-            <div className="flex items-center justify-center gap-4 mb-8 animate-fade-in animate-stagger-2">
+          {/* Content */}
+          <div className="relative z-10 text-center px-4">
+            <h1 className="text-3xl md:text-6xl font-bold text-white mb-4 animate-hero-text">
+              {movie.title}
+            </h1>
+            <div className="flex items-center justify-center gap-4 mb-8 flex-wrap animate-stagger-2">
               {movie.vote_average && (
-                <Badge variant="secondary" className="text-sm">
+                <Badge variant="secondary" className="text-sm hover-scale">
                   ★ {movie.vote_average.toFixed(1)}
                 </Badge>
               )}
               {releaseYear && (
-                <Badge variant="outline" className="text-sm">
+                <Badge variant="outline" className="text-sm hover-scale">
                   {releaseYear}
                 </Badge>
               )}
               {movie.runtime && (
-                <Badge variant="outline" className="text-sm">
+                <Badge variant="outline" className="text-sm hover-scale">
                   {movie.runtime}min
                 </Badge>
               )}
             </div>
-            <div className="animate-fade-in animate-stagger-3">
+            <div className="animate-stagger-3">
               <MovieActionButtons 
                 movie={movie} 
                 onPlay={handlePlay}
@@ -232,7 +185,7 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
         </div>
       ) : (
         // Video Player
-        <div className={`relative ${isFullscreen ? "fixed inset-0 z-50" : "h-screen"} bg-black`}>
+        <div className={`relative ${isFullscreen ? "fixed inset-0 z-50" : "h-screen"} bg-black movie-player-enter`}>
           {/* Player Controls */}
           <div className="absolute top-4 right-4 z-10 flex gap-2">
             <Button variant="secondary" size="sm" onClick={() => setIsMuted(!isMuted)}>
@@ -261,41 +214,41 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
             </div>
           )}
 
-          {/* Next Episode Hover */}
-          {showNextEpisode && nextMovie && (
-            <div className="absolute bottom-4 right-4 z-10 max-w-sm">
-              <div className="bg-black/80 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-                <div className="flex items-center gap-3 mb-3">
+          {/* Next Movie Popup */}
+          {showNextMovie && nextMovie && (
+            <div className="absolute bottom-8 right-8 z-10 max-w-md">
+              <div className="bg-black/90 backdrop-blur-md rounded-xl p-6 border border-white/30 shadow-2xl">
+                <div className="flex items-center gap-4 mb-4">
                   <img
-                    src={getTMDBImageUrl(nextMovie.poster_path || "", "w92") || "/placeholder.svg"}
+                    src={getTMDBImageUrl(nextMovie.poster_path || "", "w154") || "/placeholder.svg"}
                     alt={nextMovie.title}
-                    className="w-12 h-16 object-cover rounded"
+                    className="w-16 h-24 object-cover rounded-lg"
                   />
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-white text-sm truncate">{nextMovie.title}</h4>
-                    <p className="text-xs text-gray-300">
+                    <h4 className="font-bold text-white text-lg mb-1">{nextMovie.title}</h4>
+                    <p className="text-sm text-gray-300 mb-2">
                       {nextMovie.release_date ? new Date(nextMovie.release_date).getFullYear() : ""}
                     </p>
                     {videoEnded && (
-                      <p className="text-xs text-yellow-400 font-medium">Video Finished</p>
+                      <p className="text-sm text-yellow-400 font-semibold">Video Finished - Ready for Next</p>
                     )}
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <Button 
-                    size="sm" 
+                    size="lg" 
                     onClick={onNextMovie}
-                    className="flex-1 bg-primary hover:bg-primary/90"
+                    className="flex-1 bg-primary hover:bg-primary/90 text-base font-semibold py-3"
                   >
-                    <ChevronRight className="h-4 w-4 mr-2" />
-                    {videoEnded ? "Play Next" : "Play Next"}
+                    <ChevronRight className="h-5 w-5 mr-2" />
+                    Play Next Movie
                   </Button>
                   
                   {(autoNextEnabled || videoEnded) && (
-                    <div className="flex items-center gap-2 text-xs text-gray-300">
-                      <RotateCcw className="h-3 w-3" />
-                      {nextEpisodeTimer}s
+                    <div className="flex items-center gap-2 text-sm text-gray-300 bg-gray-800/50 px-3 py-2 rounded-lg">
+                      <RotateCcw className="h-4 w-4" />
+                      {nextMovieTimer}s
                     </div>
                   )}
                 </div>
@@ -304,52 +257,28 @@ export function MoviePlayer({ movie, nextMovie, onNextMovie }: MoviePlayerProps)
                   variant="ghost" 
                   size="sm" 
                   onClick={() => {
-                    setShowNextEpisode(false)
+                    setShowNextMovie(false)
                     setVideoEnded(false)
                   }}
-                  className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-400 hover:text-white"
+                  className="absolute top-3 right-3 h-8 w-8 p-0 text-gray-400 hover:text-white"
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Manual Video End Button for Testing */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="absolute bottom-4 left-4 z-10">
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                onClick={() => setVideoEnded(true)}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                Test Video End
-              </Button>
-            </div>
-          )}
-
-          {/* Embedded Video Player */}
+          {/* Video Player */}
           <div className="w-full h-full flex items-center justify-center">
             <iframe
               src={movie.embed_url}
               className="w-full h-full"
               frameBorder="0"
-              marginWidth={0}
-              marginHeight={0}
-              scrolling="no"
               allowFullScreen
+              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
               title={movie.title}
               onLoad={() => {
-                // Try to detect video end through various methods
-                const iframe = document.querySelector('iframe')
-                if (iframe) {
-                  // Listen for iframe messages
-                  iframe.addEventListener('load', () => {
-                    // Additional video end detection logic can be added here
-                    console.log('Video iframe loaded')
-                  })
-                }
+                console.log('Video loaded successfully')
               }}
             />
           </div>

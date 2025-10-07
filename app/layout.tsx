@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/toaster"
 import { ContentRefreshProvider } from "@/components/content-refresh-provider"
 import { Suspense } from "react"
+import "@/lib/disable-debug"
 import "./globals.css"
 
 export const metadata: Metadata = {

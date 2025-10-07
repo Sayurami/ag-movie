@@ -29,24 +29,24 @@ export function MovieGrid({ movies, loading }: MovieGridProps) {
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6">
-      {movies.map((movie) => (
-        <Link key={movie.id} href={`/movie/${movie.id}`} className="group cursor-pointer">
-          <div className="relative overflow-hidden rounded-lg bg-card">
+      {movies.map((movie, index) => (
+        <Link key={movie.id} href={`/movie/${movie.id}`} className={`group cursor-pointer animate-movie-card-hover`} style={{ animationDelay: `${index * 0.1}s` }}>
+          <div className="relative overflow-hidden rounded-lg bg-card hover-lift">
             <img
               src={getTMDBImageUrl(movie.poster_path || "") || "/placeholder.svg?height=360&width=240"}
               alt={movie.title}
-              className="w-full h-48 sm:h-64 md:h-80 object-cover transition-transform group-hover:scale-105"
+              className="w-full h-48 sm:h-64 md:h-80 object-cover transition-transform group-hover:scale-105 duration-300"
             />
 
             {/* Overlay */}
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center duration-300">
               <div className="flex gap-2">
-                <Button asChild size="sm" onClick={(e) => e.preventDefault()}>
+                <Button asChild size="sm" onClick={(e) => e.preventDefault()} className="hover-scale">
                   <Link href={`/movie/${movie.id}`}>
                     <Play className="h-4 w-4" />
                   </Link>
                 </Button>
-                <Button variant="secondary" size="sm" onClick={(e) => e.stopPropagation()}>
+                <Button variant="secondary" size="sm" onClick={(e) => e.stopPropagation()} className="hover-scale">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -54,12 +54,12 @@ export function MovieGrid({ movies, loading }: MovieGridProps) {
 
             {/* Rating Badge */}
             {movie.vote_average && (
-              <Badge className="absolute top-2 right-2 text-xs">★ {movie.vote_average.toFixed(1)}</Badge>
+              <Badge className="absolute top-2 right-2 text-xs hover-scale">★ {movie.vote_average.toFixed(1)}</Badge>
             )}
 
             {/* Narrator Badge */}
             {movie.narrator && (
-              <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/70 text-white px-2 py-1 rounded text-xs">
+              <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/70 text-white px-2 py-1 rounded text-xs hover-scale">
                 <Mic className="h-3 w-3" />
                 <span className="truncate">{movie.narrator}</span>
               </div>

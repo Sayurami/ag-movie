@@ -19,7 +19,7 @@ export function HeroSection({ movie }: HeroSectionProps) {
     <div className="relative h-screen flex items-center">
       {/* Background Image */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-fade-in"
         style={{
           backgroundImage: `url(${backdropUrl})`,
         }}
@@ -32,46 +32,46 @@ export function HeroSection({ movie }: HeroSectionProps) {
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4">
         <div className="max-w-2xl">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold text-foreground mb-4 text-balance leading-tight">{movie.title}</h1>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold text-foreground mb-4 text-balance leading-tight animate-hero-text">{movie.title}</h1>
 
-          <div className="flex items-center gap-2 sm:gap-4 mb-4 sm:mb-6 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-4 mb-4 sm:mb-6 flex-wrap animate-stagger-2">
             {movie.vote_average && (
-              <Badge variant="secondary" className="text-xs sm:text-sm">
+              <Badge variant="secondary" className="text-xs sm:text-sm hover-scale">
                 ★ {movie.vote_average.toFixed(1)}
               </Badge>
             )}
             {releaseYear && (
-              <Badge variant="outline" className="text-xs sm:text-sm">
+              <Badge variant="outline" className="text-xs sm:text-sm hover-scale">
                 {releaseYear}
               </Badge>
             )}
             {movie.runtime && (
-              <Badge variant="outline" className="text-xs sm:text-sm">
+              <Badge variant="outline" className="text-xs sm:text-sm hover-scale">
                 {movie.runtime}min
               </Badge>
             )}
           </div>
 
-          <p className="hidden sm:block text-base sm:text-lg text-muted-foreground mb-6 sm:mb-8 text-pretty leading-relaxed line-clamp-3">
+          <p className="hidden sm:block text-base sm:text-lg text-muted-foreground mb-6 sm:mb-8 text-pretty leading-relaxed line-clamp-3 animate-stagger-3">
             {movie.overview && movie.overview.length > 200 
               ? `${movie.overview.substring(0, 200)}...` 
               : movie.overview}
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <Button asChild size="lg" className="text-base sm:text-lg px-6 sm:px-8">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 animate-stagger-4">
+            <Button asChild size="lg" className="text-base sm:text-lg px-6 sm:px-8 hover-lift btn-primary-animated">
               <Link href={`/movie/${movie.id}`}>
                 <Play className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                 Play Now
               </Link>
             </Button>
 
-            <Button variant="secondary" size="lg" className="text-base sm:text-lg px-6 sm:px-8">
+            <Button variant="secondary" size="lg" className="text-base sm:text-lg px-6 sm:px-8 hover-lift">
               <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Add to List
             </Button>
 
-            <Button variant="outline" size="lg" className="text-base sm:text-lg px-6 sm:px-8 bg-transparent">
+            <Button variant="outline" size="lg" className="text-base sm:text-lg px-6 sm:px-8 bg-transparent hover-lift">
               <Info className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               More Info
             </Button>
