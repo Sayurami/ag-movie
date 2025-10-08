@@ -349,33 +349,31 @@ export function EpisodePlayer({ episode, tvShow, nextEpisode, onNextEpisode }: E
               }}
             />
             
-            {/* Small Episode Thumbnails at Bottom */}
+            {/* Episode Thumbnails in Right Corner */}
             {episodes.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
-                <div className="flex gap-2 bg-black/80 backdrop-blur-sm rounded-lg p-2 max-w-md overflow-x-auto">
-                  {episodes.slice(0, 8).map((ep) => (
+              <div className="absolute top-1/2 right-4 transform -translate-y-1/2 z-10">
+                <div className="flex flex-col gap-1 bg-black/80 backdrop-blur-sm rounded-lg p-2 max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
+                  {episodes.slice(0, 10).map((ep) => (
                     <Link
                       key={ep.id}
                       href={`/tv/${tvShow.id}/episode/${ep.id}`}
-                      className={`flex-shrink-0 w-12 h-16 rounded-md overflow-hidden border-2 transition-all duration-200 hover:scale-105 ${
+                      className={`flex-shrink-0 w-8 h-10 rounded-sm overflow-hidden border transition-all duration-200 hover:scale-110 ${
                         ep.id === episode.id 
-                          ? 'border-primary shadow-lg shadow-primary/50' 
+                          ? 'border-primary shadow-md shadow-primary/50' 
                           : 'border-gray-600 hover:border-gray-400'
                       }`}
+                      title={ep.name}
                     >
                       <img
                         src={getTMDBImageUrl(ep.still_path || tvShow.poster_path || "", "w92") || "/placeholder.svg"}
                         alt={ep.name}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1 text-center">
-                        S{ep.season_number}E{ep.episode_number}
-                      </div>
                     </Link>
                   ))}
-                  {episodes.length > 8 && (
-                    <div className="flex-shrink-0 w-12 h-16 rounded-md bg-gray-800 flex items-center justify-center text-white text-xs">
-                      +{episodes.length - 8}
+                  {episodes.length > 10 && (
+                    <div className="flex-shrink-0 w-8 h-10 rounded-sm bg-gray-800 flex items-center justify-center text-white text-xs font-bold">
+                      +{episodes.length - 10}
                     </div>
                   )}
                 </div>
