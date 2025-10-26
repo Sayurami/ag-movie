@@ -1,5 +1,5 @@
 const TMDB_TOKEN = process.env.NEXT_PUBLIC_TMDB_TOKEN
-const TMDB_BASE_URL = "https://api.themoviedb.org/3"
+const TMDB_BASE_URL = "https://api.skymansion.site/movies-dl/index.php"
 
 export async function searchTMDBMovie(query: string) {
   if (!TMDB_TOKEN) {
